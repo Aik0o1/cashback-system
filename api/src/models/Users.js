@@ -32,8 +32,8 @@ const usersSchema = new mongoose.Schema({
     userType: {
         type: String,
         required: true,
-        enum: ['admin', 'empresario', 'usuario'],  // Definição dos tipos permitidos
-        default: 'usuario'  // Valor padrão caso não seja especificado
+        enum: ['admin', 'empresario', 'usuario'],  
+        default: 'usuario'  
     }
 }, {versionKey: false})
 

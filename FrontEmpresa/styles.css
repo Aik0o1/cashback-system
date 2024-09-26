@@ -1,0 +1,89 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #5D7B45;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-image: url('CashbackImagem.jpg');
+    background-size: 43%;
+    background-position: left center;
+    background-repeat: no-repeat;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: rgba(26, 30, 26, 0.8);
+    color: white;
+}
+
+.buttons {
+    display: flex;
+    align-items: center;
+}
+
+.buttons button {
+    margin-left: 10px;
+    padding: 10px;
+    background-color: #5D7B45;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin: 20px auto;
+    width: 80%;
+    max-width: 800px;
+    flex-grow: 1;
+    margin-left: auto; /* Move para a direita */
+    margin-right: 50px; /* Adiciona margem à direita */
+}
+
+
+.right {
+    padding: 40px;
+    width: 100%; /* Aumenta a largura para ocupar todo o espaço */
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: flex-end; /* Alinha o botão à direita */
+}
+
+.buttons .register, .buttons .login {
+    background-color: #28a745;
+    color: white;
+}
+
+footer {
+    background-color: #1A1E1A;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+}

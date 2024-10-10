@@ -6,6 +6,13 @@ import jwt from 'jsonwebtoken'
 // const jwt = require('jsonwebtoken');
 const conexao = await connectDatabase()
 
+
+app.use(cors({
+    origin: allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true // se você precisa permitir cookies
+}));
+
 const JWT_SECRET = 'seuSegredo';
 conexao.on("error", (erro) => {
     console.error("Erro de conexão", erro)

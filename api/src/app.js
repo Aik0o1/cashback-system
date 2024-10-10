@@ -2,13 +2,14 @@ import express from 'express'
 import connectDatabase from './config/dbConnect.js'
 import routes from './routes/index.js'
 import cors from 'cors'
-
+import jwt from 'jsonwebtoken'
+// const jwt = require('jsonwebtoken');
 const conexao = await connectDatabase()
 
+const JWT_SECRET = 'seuSegredo';
 conexao.on("error", (erro) => {
     console.error("Erro de conexão", erro)
 })
-
 conexao.once("open", () => console.log("Conexão feita com sucesso!"))
 
 const app = express()
@@ -19,10 +20,5 @@ const app = express()
 
 // Usar as rotas
 routes(app)
-
-app.get('/pontos/:id', (req, res) => {
-    const index = buscaPonto(req.params.id)
-    res.status(200).json(pontos[index]) 
-})
 
 export default app

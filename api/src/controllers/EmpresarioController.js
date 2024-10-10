@@ -1,26 +1,82 @@
-import bcrypt from 'bcrypt'
-import Empresario from '../models/Empresario.js'
+import bcrypt from 'bcrypt';
+import Empresario from '../models/Empresario.js';
+import jwt from 'jsonwebtoken'; // Adicione esta linha
 
 class EmpresarioController {
-    static async cadastrarEmpresario(req, res){
-        try{
-            const { email, senha, ...rest } = req.body;
-            
-            const empresarioExistente = await Empresario.findOne({ email });
-            if (empresarioExistente) {
-                return res.status(400).json({ message: "Email já cadastrado"});
-            }
+  // Método para cadastrar um novo empresário
+  static async cadastrarEmpresario(req, res) {
+    try {
+      const { email, senha, ...rest } = req.body;
 
-            const hashedPassword = await bcrypt.hash(senha, 10);
+      // Verifica se o email já está cadastrado
+      const empresarioExistente = await Empresario.findOne({ email });
+      if (empresarioExistente) {
+        return res.status(400).json({ message: "Email já cadastrado" });
+      }
 
-            const novoEmpresario = await Empresario.create({ ...rest, email, senha: hashedPassword });
+      // Criptografa a senha antes de salvar
+      const hashedPassword = await bcrypt.hash(senha, 10);
 
-            const { senha: _, ...empresaroSemSenha } = novoEmpresario._doc;
-            res.status(201).json({ message: "Empresario cadastrado com sucesso", empresario: empresaroSemSenha});  
-        } catch (erro) {
-            res.status(500).json({ message: `${erro.message} - falha ao cadastrar empresário` });
-        }
+      // Cria um novo empresário no banco de dados
+      const novoEmpresario = await Empresario.create({
+        ...rest,
+        email,
+        senha: hashedPassword, // Armazena a senha criptografada
+      });
+
+      // Remove a senha da resposta para não expô-la
+      const { senha: _, ...empresarioSemSenha } = novoEmpresario._doc;
+
+      // Resposta de sucesso
+      res.status(201).json({
+        message: "Empresário cadastrado com sucesso",
+        empresario: empresarioSemSenha,
+      });
+    } catch (erro) {
+      // Tratamento de erro
+      res.status(500).json({ message: `${erro.message} - falha ao cadastrar empresário` });
     }
+  }
+
+  // Método para login de empresário
+  static async login(req, res) {
+    const { emailCnpj, senha } = req.body;
+
+    try {
+      const empresario = await Empresario.findOne({
+        $or: [{ email: emailCnpj }, { cnpj: emailCnpj }],
+      });
+
+      if (!empresario) {
+        return res.status(404).json({ message: "Empresário não encontrado" });
+      }
+
+      const senhaValida = await bcrypt.compare(senha, empresario.senha);
+
+      if (!senhaValida) {
+        return res.status(401).json({ message: "Senha incorreta" });
+      }
+
+      // Gera o token JWT
+      const token = jwt.sign({ id: empresario._id }, 'seuSegredo', { expiresIn: '1h' });
+
+      // Sucesso - retorna o empresário autenticado e o token (sem expor a senha)
+      const { senha: _, ...empresarioSemSenha } = empresario._doc;
+      res.status(200).json({ message: "Login bem-sucedido", empresario: empresarioSemSenha, token });
+    } catch (error) {
+      res.status(500).json({ message: `${error.message} - falha ao fazer login` });
+    }
+  }
+
+  static async listarEmpresarios(req, res) {
+    try {
+      const empresarios = await Empresario.find(); // Não precisa de populate
+      res.status(200).json(empresarios);
+    } catch (erro) {
+      res.status(500).json({ message: `${erro.message} - falha ao listar empresários` });
+    }
+  }
+  
 }
 
 export default EmpresarioController;

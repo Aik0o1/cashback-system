@@ -10,7 +10,7 @@ function Loja() {
   // Função para buscar os produtos da API
   const fetchProdutos = async () => {
     try {
-      const response = await axios.get('http://localhost:5050/produtos');
+      const response = await axios.get('https://cashback-system-1.onrender.com/produtos');
       setProdutos(response.data);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);

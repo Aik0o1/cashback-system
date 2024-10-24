@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import Empresario from '../models/Empresario.js';
-import jwt from 'jsonwebtoken'; // Adicione esta linha
+import jwt from 'jsonwebtoken'; // Adicionando jwt
 
 class EmpresarioController {
   // Método para cadastrar um novo empresário
@@ -24,13 +24,17 @@ class EmpresarioController {
         senha: hashedPassword, // Armazena a senha criptografada
       });
 
+      // Gera o token JWT para login automático
+      const token = jwt.sign({ id: novoEmpresario._id }, 'seuSegredo', { expiresIn: '1h' });
+
       // Remove a senha da resposta para não expô-la
       const { senha: _, ...empresarioSemSenha } = novoEmpresario._doc;
 
-      // Resposta de sucesso
+      // Resposta de sucesso com o token
       res.status(201).json({
         message: "Empresário cadastrado com sucesso",
         empresario: empresarioSemSenha,
+        token, // Envia o token no retorno
       });
     } catch (erro) {
       // Tratamento de erro
@@ -70,13 +74,12 @@ class EmpresarioController {
 
   static async listarEmpresarios(req, res) {
     try {
-      const empresarios = await Empresario.find(); // Não precisa de populate
+      const empresarios = await Empresario.find();
       res.status(200).json(empresarios);
     } catch (erro) {
       res.status(500).json({ message: `${erro.message} - falha ao listar empresários` });
     }
   }
-  
 }
 
 export default EmpresarioController;

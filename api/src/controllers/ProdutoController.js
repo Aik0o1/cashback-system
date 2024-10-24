@@ -32,9 +32,10 @@ class ProdutoController {
         preco,
         categoria,
         imagemUrl,
-        empresario: empresarioId
+        empresario: empresarioId // Associa o produto ao empresário autenticado
       });
 
+      // Associa o produto criado ao empresário
       empresario.produtos.push(novoProduto._id);
       await empresario.save();
 
@@ -66,14 +67,13 @@ class ProdutoController {
       res.status(500).json({ message: `${erro.message} - falha ao buscar produto` });
     }
   }
-  
 
   // Método para atualizar um produto por ID (UPDATE)
   static async atualizarProduto(req, res) {
     try {
       const { nome, descricao, preco, categoria, cashback, validade } = req.body;
+      const empresarioId = req.empresarioId; // Obtém o ID do empresário autenticado do middleware
 
-      // Verifica se uma nova imagem foi enviada e faz o upload para o Cloudinary
       let imagemUrl = null;
       if (req.file) {
         const uploadResult = await cloudinary.uploader.upload(req.file.path, {
@@ -82,15 +82,15 @@ class ProdutoController {
         imagemUrl = uploadResult.secure_url;
       }
 
-      // Atualiza os campos, incluindo a imagem se ela foi enviada
-      const produtoAtualizado = await Produto.findByIdAndUpdate(
-        req.params.id,
+      // Atualiza os campos do produto, incluindo a imagem se ela foi enviada
+      const produtoAtualizado = await Produto.findOneAndUpdate(
+        { _id: req.params.id, empresario: empresarioId }, // Verifica se o produto pertence ao empresário autenticado
         { nome, descricao, preco, categoria, cashback, validadeCashback: validade, imagemUrl },
         { new: true, omitUndefined: true } // `omitUndefined` ignora os campos não definidos
       );
 
       if (!produtoAtualizado) {
-        return res.status(404).json({ message: "Produto não encontrado" });
+        return res.status(404).json({ message: "Produto não encontrado ou você não tem permissão para atualizá-lo" });
       }
 
       res.status(200).json({ message: "Produto atualizado com sucesso", produto: produtoAtualizado });
@@ -102,14 +102,17 @@ class ProdutoController {
   // Método para deletar um produto por ID (DELETE)
   static async deletarProduto(req, res) {
     try {
-      const produtoDeletado = await Produto.findByIdAndDelete(req.params.id);
+      const empresarioId = req.empresarioId; // Obtém o ID do empresário autenticado do middleware
+
+      // Busca o produto e verifica se ele pertence ao empresário autenticado
+      const produtoDeletado = await Produto.findOneAndDelete({ _id: req.params.id, empresario: empresarioId });
 
       if (!produtoDeletado) {
-        return res.status(404).json({ message: "Produto não encontrado" });
+        return res.status(404).json({ message: "Produto não encontrado ou você não tem permissão para deletá-lo" });
       }
 
       // Remove o produto do array de produtos do empresário
-      const empresario = await Empresario.findById(produtoDeletado.empresario);
+      const empresario = await Empresario.findById(empresarioId);
       empresario.produtos.pull(produtoDeletado._id);
       await empresario.save();
 

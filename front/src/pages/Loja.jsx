@@ -10,7 +10,7 @@ function Loja() {
   // Função para buscar os produtos da API
   const fetchProdutos = async () => {
     try {
-      const response = await axios.get('https://cashback-system-1.onrender.com/produtos');
+      const response = await axios.get('https://cashback-testes.onrender.com/produtos');
       setProdutos(response.data);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -52,10 +52,33 @@ function Loja() {
   });
 
   // Função para simular a compra de um produto
-  const handleCompra = (produtoId) => {
-    alert(`Produto com ID ${produtoId} foi comprado!`);
-    // Aqui você pode implementar a lógica de redirecionar para uma página de checkout ou processar o pedido
+  // Função para simular a compra de um produto
+  const handleCompra = async (produtoId, empresarioId) => {
+    try {
+      const usuarioId = localStorage.getItem('user'); // Obtém o ID do usuário logado do localStorage
+      if (!usuarioId) {
+        alert('Você precisa estar logado para comprar.');
+        return;
+      }
+
+      // Faz a requisição POST para criar uma transação
+      const response = await axios.post('https://cashback-testes.onrender.com/transacoes', {
+        produtoId: produtoId,
+        usuarioId: usuarioId,
+        empresarioId: empresarioId, // Passa o ID do empresário associado ao produto
+      });
+
+      if (response.status === 201) {
+        alert('Compra realizada com sucesso!');
+      } else {
+        alert('Erro ao realizar a compra.');
+      }
+    } catch (error) {
+      console.error('Erro ao realizar compra:', error);
+      alert('Erro ao realizar a compra.');
+    }
   };
+
 
   return (
     <div className="container min-h-screen fundo-login max-w-full">
@@ -122,7 +145,7 @@ function Loja() {
                     className="rounded-lg h-48 object-cover mb-4"
                   />
                 )}
-                
+
                 <h2 className="text-xl font-semibold mb-2">{produto.nome}</h2>
                 <p className="text-gray-600 mb-2">Descrição: {produto.descricao}</p>
                 <p className="text-lg font-bold text-blue-500">Preço: R$ {produto.preco.toFixed(2)}</p>
@@ -141,11 +164,12 @@ function Loja() {
 
                 {/* Botão de Comprar */}
                 <button
-                  onClick={() => handleCompra(produto._id)}
+                  onClick={() => handleCompra(produto._id, produto.empresario?._id)}
                   className="mt-4 px-6 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-700"
                 >
                   Comprar
                 </button>
+
               </div>
             </Card>
           ))

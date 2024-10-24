@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  flexRender,
+  flex,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -32,7 +32,7 @@ export function DataTable({ columns, data }) {
                 <TableHead key={header.id}>
                   {header.isPlaceholder
                     ? null
-                    : flexRender(
+                    : flex(
                         header.column.columnDef.header,
                         header.getContext()
                       )}
@@ -47,7 +47,7 @@ export function DataTable({ columns, data }) {
               <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    {flex(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>

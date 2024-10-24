@@ -51,7 +51,7 @@ export default function CadastroProduto({ empresarioId }) {
 
     try {
       const response = await axios.post(
-        "https://cashback-system-1.onrender.com/produtos",
+        "https://cashback-testes.onrender.com/produtos",
         formData,
         {
           headers: {

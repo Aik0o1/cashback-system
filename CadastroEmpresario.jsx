@@ -51,30 +51,26 @@ export default function CadastroEmpresario() {
 
   const onSubmit = async (data) => {
     setLoading(true);
-    const token = localStorage.getItem("token");
-
-    const formData = {
-      ...data,
-      cashback: parseFloat(data.cashback), // Converte o valor de cashback para número
-    };
-
+  
     try {
       const response = await axios.post(
-        "https://cashback-system-1.onrender.com/empresario",
-        formData,
+        "https://cashback-testes.onrender.com/empresario",
         {
-          headers: {
-            Authorization: `Bearer ${token}`, // Inclui o token no header da requisição
-          },
+          ...data,
+          cashback: parseFloat(data.cashback), // Converte o valor de cashback para número
         }
       );
-
+  
+      const { token } = response.data;
+      
+      // Salva o token no localStorage
+      localStorage.setItem('token', token);
+  
       alert("Empresário cadastrado com sucesso!");
-      console.log(response.data);
-      navigate("/empresarioLogin");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erro ao cadastrar empresário:", error.response?.data);
-
+  
       if (error.response?.data?.message === "Email já cadastrado") {
         setEmailError("Email já cadastrado.");
       } else if (
@@ -90,8 +86,21 @@ export default function CadastroEmpresario() {
       setLoading(false);
     }
   };
+  
 
   return (
+    <div className="min-h-screen fundo-login">
+    {/* Cabeçalho */}
+    <header className="bg-zinc-900 p-6">
+      <a
+        className="bg-lime-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg hover:bg-lime-700 transition-colors"
+        href="/"
+      >
+        Uespi CashBack
+      </a>
+      <span className="text-white font-bold text-2xl"> </span>
+    </header>
+
     <div className="min-h-screen fundo-login flex items-center justify-center">
       <div className="w-full max-w-xl mx-auto p-8 bg-white shadow-md rounded-lg">
         <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
@@ -271,5 +280,6 @@ export default function CadastroEmpresario() {
         </Form>
       </div>
     </div>
+  </div>
   );
 }

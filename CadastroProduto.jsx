@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,31 +14,24 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-// Validação com Zod para o cadastro de usuário
+// Validação com Zod
 const formSchema = z.object({
-  username: z
+  nome: z
     .string()
-    .min(2, { message: "O username deve ter pelo menos 2 caracteres." }),
-  firstName: z
+    .min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
+  descricao: z
     .string()
-    .min(2, { message: "O primeiro nome deve ter pelo menos 2 caracteres." }),
-  lastName: z
-    .string()
-    .min(2, { message: "O sobrenome deve ter pelo menos 2 caracteres." }),
-  cidade: z.string().min(2, { message: "O nome da cidade é obrigatório." }),
-  email: z.string().email({ message: "Insira um e-mail válido." }),
-  password: z
-    .string()
-    .min(6, { message: "A senha deve ter pelo menos 6 caracteres." }),
+    .min(5, { message: "A descrição deve ter pelo menos 5 caracteres." }),
+  preco: z.string().min(1, { message: "O preço é obrigatório." }),
+  categoria: z.string().min(1, { message: "A categoria é obrigatória." }),
+  imagem: z.any(), // Aqui não precisa de validação especial para imagem
 });
 
-export default function CadastroUsuario() {
+export default function CadastroProduto({ empresarioId }) {
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const [userError, setUserError] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null); // Para armazenar a imagem selecionada
 
   // Hook form setup
   const form = useForm({
@@ -48,33 +40,39 @@ export default function CadastroUsuario() {
 
   const onSubmit = async (data) => {
     setLoading(true);
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+    formData.append("nome", data.nome);
+    formData.append("descricao", data.descricao);
+    formData.append("preco", parseFloat(data.preco));
+    formData.append("categoria", data.categoria);
+    formData.append("imagem", selectedFile); // Adiciona a imagem do estado ao FormData
 
     try {
-      const response = await axios.post("https://cashback-testes.onrender.com/users", data);
+      const response = await axios.post(
+        "https://cashback-testes.onrender.com/produtos",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`, // Inclui o token no header da requisição
+          },
+        }
+      );
 
-      // Armazena o token no localStorage
-      const { token, user } = response.data;
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", user.username);
-
-      alert("Usuário cadastrado com sucesso!");
-
-      // Redireciona para a página principal da loja
-      navigate("/");
+      alert("Produto cadastrado com sucesso!");
+      console.log(response.data);
     } catch (error) {
-      console.error("Erro ao cadastrar usuário:", error.response?.data);
-
-      if (error.response?.data?.message.includes("E11000 duplicate key error collection: test.users index: username_1")){
-        setUserError("Username já cadastrado.");
-      } else if (error.response?.data?.message.includes("E11000 duplicate key error collection: test.users index: email_1")){
-        setEmailError("Email já cadastrado.")
-      }
-      else {
-        alert("Erro ao cadastrar usuário");
-      }
+      console.error("Erro ao cadastrar produto:", error.response?.data);
+      alert("Erro ao cadastrar produto");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0]); // Captura o arquivo de imagem e armazena no estado
   };
 
   return (
@@ -89,49 +87,26 @@ export default function CadastroUsuario() {
       </a>
       <span className="text-white font-bold text-2xl"> </span>
     </header>
+    
     <div className="min-h-screen fundo-login flex items-center justify-center">
       <div className="w-full max-w-xl mx-auto p-8 bg-white shadow-md rounded-lg">
         <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          Cadastro de Usuário
+          Cadastro de Produto
         </h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Username */}
+            {/* Nome */}
             <FormField
               control={form.control}
-              name="username"
+              name="nome"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block text-sm font-medium text-gray-700">
-                    Username
+                    Nome do Produto
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Username"
-                      {...field}
-                      className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </FormControl>
-                  {userError && (
-                    <p className="text-red-500 text-sm mt-1">{userError}</p>
-                  )}
-                  <FormMessage className="text-red-500 text-sm mt-1" />
-                </FormItem>
-              )}
-            />
-
-            {/* Primeiro Nome */}
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Primeiro Nome
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Primeiro Nome"
+                      placeholder="Nome do Produto"
                       {...field}
                       className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -141,18 +116,20 @@ export default function CadastroUsuario() {
               )}
             />
 
-            {/* Sobrenome */}
+            {/* Preço */}
             <FormField
               control={form.control}
-              name="lastName"
+              name="preco"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block text-sm font-medium text-gray-700">
-                    Sobrenome
+                    Preço
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Sobrenome"
+                      type="number"
+                      placeholder="Preço"
+                      step="0.01"
                       {...field}
                       className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -162,18 +139,18 @@ export default function CadastroUsuario() {
               )}
             />
 
-            {/* Cidade */}
+            {/* Descrição */}
             <FormField
               control={form.control}
-              name="cidade"
+              name="descricao"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block text-sm font-medium text-gray-700">
-                    Cidade
+                    Descrição
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Cidade"
+                    <Textarea
+                      placeholder="Descrição do Produto"
                       {...field}
                       className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -183,52 +160,42 @@ export default function CadastroUsuario() {
               )}
             />
 
-            {/* Email */}
+            {/* Categoria */}
             <FormField
               control={form.control}
-              name="email"
+              name="categoria"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block text-sm font-medium text-gray-700">
-                    Email
+                    Categoria
                   </FormLabel>
                   <FormControl>
                     <Input
-                      type="email"
-                      placeholder="Email"
+                      placeholder="Categoria"
                       {...field}
                       className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                   </FormControl>
-                  {emailError && (
-                    <p className="text-sm text-red-500 mt-1">{emailError}</p>
-                  )}
                   <FormMessage className="text-red-500 text-sm mt-1" />
                 </FormItem>
               )}
             />
 
-            {/* Senha */}
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Senha
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Senha"
-                      {...field}
-                      className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </FormControl>
-                  <FormMessage className="text-red-500 text-sm mt-1" />
-                </FormItem>
-              )}
-            />
+            {/* Imagem */}
+            <FormItem>
+              <FormLabel className="block text-sm font-medium text-gray-700">
+                Imagem do Produto
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </FormControl>
+              <FormMessage className="text-red-500 text-sm mt-1" />
+            </FormItem>
 
             {/* Botão de Enviar */}
             <Button
@@ -238,7 +205,7 @@ export default function CadastroUsuario() {
               }`}
               disabled={loading}
             >
-              {loading ? "Cadastrando..." : "Cadastrar Usuário"}
+              {loading ? "Cadastrando..." : "Cadastrar Produto"}
             </Button>
           </form>
         </Form>

@@ -1,14 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Dashboard from '../pages/Empresario/Dashboard';
-import EmpresarioLogin from '../pages/Empresario/LoginEmpresario';
-import CadastroProduto from '../pages/Empresario/CadastroProduto';
-import Loja from '../pages/Loja';
-import CadastroEmpresario from '../pages/Empresario/CadastroEmpresario';
-import CadastroUsuario from '@/pages/Usuario/CadastroUsuario';
-import LoginUsuario from '@/pages/Usuario/LoginUsuario';
-import Login from '@/pages/Login';
-import Cadastro from '@/pages/Cadastro';
+import Dashboard from '../pages/Empresario/Dashboard.jsx';
+import EmpresarioLogin from '../pages/Empresario/LoginEmpresario.jsx';
+import CadastroProduto from '../pages/Empresario/CadastroProduto.jsx';
+import Loja from '../pages/Loja.jsx';
+import CadastroEmpresario from '../pages/Empresario/CadastroEmpresario.jsx';
+import CadastroUsuario from '@/pages/Usuario/CadastroUsuario.jsx';
+import LoginUsuario from '@/pages/Usuario/LoginUsuario.jsx';
+import Login from '@/pages/Login.jsx';
+import Cadastro from '@/pages/Cadastro.jsx';
+import Carrinho from '@/pages/Usuario/Carrinho.jsx';
+import MeusPedidos from '@/pages/Usuario/Pedidos.jsx'
 const AppRoutes = () => {
   return (
     <Router>
@@ -22,6 +24,10 @@ const AppRoutes = () => {
         <Route path="/loginUsuario" element={<LoginUsuario />}/>
         <Route path="/login" element={<Login />}/>
         <Route path="/cadastro" element={<Cadastro />}/>
+        <Route path="/carrinho" element={<Carrinho />}/>
+        <Route path="/pedidos" element={<MeusPedidos />}/>
+
+
 
       </Routes>
     </Router>

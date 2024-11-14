@@ -15,10 +15,6 @@ const usersSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    cidade: {
-        type: String, 
-        required: true
-    },
     email: {
         type: String,
         required: true,
@@ -37,5 +33,5 @@ const usersSchema = new mongoose.Schema({
     }
 }, {versionKey: false})
 
-const user = mongoose.model("users", usersSchema);
+const user = mongoose.model("Usuario", usersSchema);
 export default user;

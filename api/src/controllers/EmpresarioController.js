@@ -80,6 +80,57 @@ class EmpresarioController {
       res.status(500).json({ message: `${erro.message} - falha ao listar empresários` });
     }
   }
+
+  static async listarEmpresarioPorId(req, res) {
+    try {
+      const empresarioId = req.params.id; // Obtém o ID do empresário dos parâmetros da URL
+  
+      // Busca o empresário pelo ID
+      const empresario = await Empresario.findById(empresarioId);
+  
+      if (!empresario) {
+        return res.status(404).json({ message: "Empresário não encontrado" });
+      }
+  
+      // Exclui a senha antes de enviar a resposta
+      const { senha, ...empresarioSemSenha } = empresario._doc;
+      res.status(200).json(empresarioSemSenha);
+    } catch (erro) {
+      res.status(500).json({ message: `${erro.message} - falha ao buscar empresário` });
+    }
+  }
+
+  // Método para atualizar os dados do empresário (UPDATE)
+static async atualizarEmpresario(req, res) {
+  try {
+    const { nomeLoja, cashback, validadeCashback } = req.body;
+    const empresarioId = req.params.id; // Obtém o ID do empresário da URL
+
+    // Verifica se o empresário existe
+    const empresario = await Empresario.findById(empresarioId);
+    if (!empresario) {
+      return res.status(404).json({ message: "Empresário não encontrado" });
+    }
+
+    // Atualiza os dados do empresário
+    if (nomeLoja) empresario.nomeLoja = nomeLoja;
+    if (cashback) empresario.cashback = cashback;
+    if (validadeCashback) empresario.validadeCashback = validadeCashback;
+
+    // Salva as alterações no banco de dados
+    await empresario.save();
+
+    // Retorna a resposta com os dados atualizados (excluindo a senha)
+    const { senha, ...empresarioAtualizado } = empresario._doc;
+    res.status(200).json({
+      message: "Dados do empresário atualizados com sucesso",
+      empresario: empresarioAtualizado,
+    });
+  } catch (erro) {
+    res.status(500).json({ message: `${erro.message} - falha ao atualizar dados do empresário` });
+  }
+}
+
 }
 
 export default EmpresarioController;

@@ -12,5 +12,5 @@ const EmpresarioSchema = new mongoose.Schema({
   produtos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'produtos' }]  // Array de produtos relacionados
 });
 
-const Empresario = mongoose.model("empresario", EmpresarioSchema);  // Ajustado o nome do modelo
+const Empresario = mongoose.model("Empresario", EmpresarioSchema);  // Ajustado o nome do modelo
 export default Empresario;

@@ -18,18 +18,23 @@ const app = express();
 app.use(express.json()); // Importante para garantir que o express parseie requisições JSON corretamente
 
 // Configuração de CORS para permitir o frontend local
-const corsOptions = {
-    origin: ['https://cashback-testes-oda9keomm-aik0o1s-projects.vercel.app/', 'https://cashback-testes.onrender.com'], // Permitir múltiplas origens
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
-    credentials: true, // Permite enviar cookies e headers de autenticação
-    optionsSuccessStatus: 200, // Para navegadores mais antigos
-  };
+// const corsOptions = {
+//   origin: [
+//       'http://localhost:5173', 
+//       'https://cashback-testes.onrender.com', 
+//       'https://cashback-testes.vercel.app' // Inclua o link do frontend
+//   ],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true,
+//   optionsSuccessStatus: 200,
+// };
+
   
-  app.use(cors(corsOptions));
+  // app.use(cors(corsOptions));
   
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 // Definir as rotas
 routes(app);

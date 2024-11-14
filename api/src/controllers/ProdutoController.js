@@ -71,56 +71,116 @@ class ProdutoController {
   // Método para atualizar um produto por ID (UPDATE)
   static async atualizarProduto(req, res) {
     try {
-      const { nome, descricao, preco, categoria, cashback, validade } = req.body;
-      const empresarioId = req.empresarioId; // Obtém o ID do empresário autenticado do middleware
+      const { nome, descricao, preco, categoria, cashback, validade, imagemUrl: existingImageUrl } = req.body;
+      const empresarioId = req.empresarioId;
 
-      let imagemUrl = null;
+      // Primeiro, busque o produto atual para verificar se ele existe e pertence ao empresário
+      const produtoExistente = await Produto.findOne({ 
+        _id: req.params.id, 
+        empresario: empresarioId 
+      });
+
+      if (!produtoExistente) {
+        return res.status(404).json({ 
+          message: "Produto não encontrado ou você não tem permissão para atualizá-lo" 
+        });
+      }
+
+      // Prepare o objeto de atualização com os campos básicos
+      const updateData = {
+        nome,
+        descricao,
+        preco,
+        categoria,
+        cashback,
+        validadeCashback: validade,
+      };
+
+      // Trate a imagem apenas se uma nova foi enviada
       if (req.file) {
         const uploadResult = await cloudinary.uploader.upload(req.file.path, {
           folder: "produtos",
         });
-        imagemUrl = uploadResult.secure_url;
+        updateData.imagemUrl = uploadResult.secure_url;
+      } else if (existingImageUrl) {
+        // Se não há nova imagem mas há uma URL existente, mantenha-a
+        updateData.imagemUrl = existingImageUrl;
       }
 
-      // Atualiza os campos do produto, incluindo a imagem se ela foi enviada
+      // Atualiza o produto com os novos dados
       const produtoAtualizado = await Produto.findOneAndUpdate(
-        { _id: req.params.id, empresario: empresarioId }, // Verifica se o produto pertence ao empresário autenticado
-        { nome, descricao, preco, categoria, cashback, validadeCashback: validade, imagemUrl },
-        { new: true, omitUndefined: true } // `omitUndefined` ignora os campos não definidos
+        { _id: req.params.id, empresario: empresarioId },
+        updateData,
+        { 
+          new: true,
+          runValidators: true // Garante que as validações do esquema sejam executadas
+        }
       );
 
-      if (!produtoAtualizado) {
-        return res.status(404).json({ message: "Produto não encontrado ou você não tem permissão para atualizá-lo" });
-      }
-
-      res.status(200).json({ message: "Produto atualizado com sucesso", produto: produtoAtualizado });
+      res.status(200).json({ 
+        message: "Produto atualizado com sucesso", 
+        produto: produtoAtualizado 
+      });
     } catch (erro) {
-      res.status(500).json({ message: `${erro.message} - falha ao atualizar produto` });
+      console.error('Erro ao atualizar produto:', erro);
+      res.status(500).json({ 
+        message: `${erro.message} - falha ao atualizar produto`,
+        error: erro.stack 
+      });
     }
   }
 
   // Método para deletar um produto por ID (DELETE)
   static async deletarProduto(req, res) {
     try {
-      const empresarioId = req.empresarioId; // Obtém o ID do empresário autenticado do middleware
-
+      const empresarioId = req.empresarioId;
+      const produtoId = req.params.id;
+  
+  
       // Busca o produto e verifica se ele pertence ao empresário autenticado
-      const produtoDeletado = await Produto.findOneAndDelete({ _id: req.params.id, empresario: empresarioId });
-
+      const produtoDeletado = await Produto.findOneAndDelete({ 
+        _id: produtoId, 
+        empresario: empresarioId 
+      });
+  
       if (!produtoDeletado) {
-        return res.status(404).json({ message: "Produto não encontrado ou você não tem permissão para deletá-lo" });
+        return res.status(404).json({ 
+          message: "Produto não encontrado ou você não tem permissão para deletá-lo" 
+        });
       }
-
+  
       // Remove o produto do array de produtos do empresário
       const empresario = await Empresario.findById(empresarioId);
       empresario.produtos.pull(produtoDeletado._id);
       await empresario.save();
-
+  
       res.status(200).json({ message: "Produto deletado com sucesso" });
     } catch (erro) {
       res.status(500).json({ message: `${erro.message} - falha ao deletar produto` });
     }
   }
+
+
+  // Função para listar todos os produtos de um empresário específico (READ - GET BY EMPRESARIO ID)
+static async listarProdutosPorEmpresarioId(req, res) {
+  try {
+    const empresarioId = req.params.empresarioId; // Obtém o ID do empresário dos parâmetros da URL
+
+    // Verifica se o empresário existe
+    const empresario = await Empresario.findById(empresarioId);
+    if (!empresario) {
+      return res.status(404).json({ message: "Empresário não encontrado" });
+    }
+
+    // Busca todos os produtos associados ao ID do empresário
+    const produtos = await Produto.find({ empresario: empresarioId });
+
+    res.status(200).json(produtos);
+  } catch (erro) {
+    res.status(500).json({ message: `${erro.message} - falha ao listar produtos do empresário` });
+  }
+}
+
 }
 
 export default ProdutoController;

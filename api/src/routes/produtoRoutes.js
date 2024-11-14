@@ -21,4 +21,7 @@ routes.put("/produtos/:id", authMiddleware, upload.single('imagem'), ProdutoCont
 // Rota para deletar um produto por ID (DELETE) - Autenticada
 routes.delete("/produtos/:id", authMiddleware, ProdutoController.deletarProduto);
 
+routes.get('/produtos/empresario/:empresarioId', ProdutoController.listarProdutosPorEmpresarioId);
+
+
 export default routes;

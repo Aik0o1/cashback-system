@@ -1,169 +1,354 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, ShoppingBag, Search, LogOut, User } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 function Loja() {
   const [produtos, setProdutos] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(''); // Estado para o termo de pesquisa
-  const [userName, setUserName] = useState(null); // Estado para o nome do usuário logado
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userName, setUserName] = useState(null);
 
-  // Função para buscar os produtos da API
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchProdutos();
+    checkUserLoggedIn();
+  }, []);
+
+  const checkUserLoggedIn = () => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const storedId = localStorage.getItem('userId');
+
+    // console.log(storedToken)
+    // console.log(storedId)
+    // console.log(storedUser)
+
+    if (storedUser && storedToken && storedId) {
+      setUser({ username: storedToken });
+      setUserName(storedUser);
+      setToken(storedToken);
+      setUserId(storedId);
+    }
+  };
+  
   const fetchProdutos = async () => {
     try {
+      console.log(localStorage.getItem('token'))
+      setLoading(true);
       const response = await axios.get('https://cashback-testes.onrender.com/produtos');
       setProdutos(response.data);
     } catch (error) {
+      setError('Erro ao carregar produtos. Tente novamente mais tarde.');
       console.error('Erro ao buscar produtos:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Verifica se o usuário está logado e obtém o nome do localStorage
-  const checkUserLoggedIn = () => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUserName(storedUser); // Atualiza o estado com o nome do usuário
+  const handleCompra = async (produto) => {
+    if (!user || !token) {
+      setError('Você precisa estar logado para realizar uma compra.');
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
+
+    if (!produto.empresario) {
+      setError('Este produto não está disponível para compra no momento.');
+      return;
+    }
+
+    const validadeCashback = new Date(produto.empresario.validadeCashback);
+    if (validadeCashback < new Date()) {
+      setError('O cashback deste produto está expirado.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await axios.post(
+        'https://cashback-testes.onrender.com/transacoes',
+        {
+          produtoId: produto._id,
+          usuarioId: userId,
+          empresarioId: produto.empresario._id,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        setSuccess(`Pedido enviado ao carrinho! Você receberá ${produto.empresario.cashback}% de cashback ao finalizar a compra.`);
+        fetchProdutos();
+      }
+    } catch (error) {
+      console.error('Erro na compra:', error);
+      setError(error.response?.data?.message || 'Erro ao processar a compra. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Função de logout para limpar o localStorage e atualizar o estado
-  const handleLogout = () => {
-    localStorage.removeItem('user'); // Remove o usuário do localStorage
-    setUserName(null); // Reseta o estado de nome de usuário
-  };
-
-  useEffect(() => {
-    fetchProdutos();  // Busca os produtos quando o componente é montado
-    checkUserLoggedIn(); // Verifica se o usuário está logado ao montar o componente
-  }, []);
-
-  // Função para lidar com a mudança no campo de pesquisa
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  // Função para filtrar os produtos com base no termo de pesquisa
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUser(null);
+    setToken(null);
+    setUserName(null)
+    setUserId(null)
+    localStorage.clear();
+
+  };
+
+  const navigateToCart = () => {
+    navigate('/carrinho');
+  };
+
+  const navigateToPedidos = () => {
+    navigate('/pedidos');
+  };
+
   const filteredProdutos = produtos.filter((produto) => {
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const searchTermLower = searchTerm.toLowerCase();
     return (
-      produto.nome.toLowerCase().includes(lowerCaseSearchTerm) ||
-      produto.descricao.toLowerCase().includes(lowerCaseSearchTerm) ||
-      produto.categoria.toLowerCase().includes(lowerCaseSearchTerm)
+      produto.nome.toLowerCase().includes(searchTermLower) ||
+      produto.descricao.toLowerCase().includes(searchTermLower) ||
+      produto.categoria.toLowerCase().includes(searchTermLower)
     );
   });
 
-  // Função para simular a compra de um produto
-  const handleCompra = (produtoId) => {
-    alert(`Produto com ID ${produtoId} foi comprado!`);
-    // Aqui você pode implementar a lógica de redirecionar para uma página de checkout ou processar o pedido
-  };
-
   return (
-    <div className="container min-h-screen fundo-login max-w-full">
-      <header className="bg-zinc-900 p-4 ext-white flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100">
+      {/* Header com design moderno */}
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo e nome */}
+            <div className="flex items-center space-x-4">
+              <span className="bg-gradient-to-r from-lime-500 to-lime-600 text-white py-2 px-4 rounded-lg text-lg font-bold shadow-sm">
+                Uespi CashBack
+              </span>
+            </div>
 
-        <div>
-          <span className="bg-lime-600 text-white py-3 px-6 rounded-md text-lg font-bold shadow-lg">Uespi CashBack</span>
-          <span className="text-white font-bold text-2xl">  - Produtos</span>
+            {/* Barra de pesquisa centralizada */}
+            <div className="flex-1 max-w-xl mx-8">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar produtos..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Menu do usuário */}
+            <nav className="flex items-center space-x-3">
+              {userName ? (
+                <>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-white font-bold text-2xl">Bem-vindo, {userName}</span>
+                    
+                    <Button
+                      onClick={navigateToPedidos}
+                      variant="ghost"
+                      className="flex items-center space-x-2 text-zinc-700 hover:text-lime-600"
+                    >
+                      <ShoppingBag className="h-5 w-5" />
+                      <span className="hidden sm:inline">Pedidos</span>
+                    </Button>
+
+                    <Button
+                      onClick={navigateToCart}
+                      variant="ghost"
+                      className="flex items-center space-x-2 text-zinc-700 hover:text-lime-600"
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                      <span className="hidden sm:inline">Carrinho</span>
+                    </Button>
+
+                    <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-zinc-100">
+                      <User className="h-5 w-5 text-zinc-600" />
+                      <span className="text-sm font-medium text-zinc-700">{userName}</span>
+                    </div>
+
+                    <Button
+                      onClick={handleLogout}
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <LogOut className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={() => navigate('/login')}
+                    variant="outline"
+                    className="border-lime-600 text-lime-600 hover:bg-lime-50"
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/cadastro')}
+                    className="bg-lime-600 hover:bg-lime-700 text-white"
+                  >
+                    Cadastro
+                  </Button>
+                </div>
+              )}
+            </nav>
+          </div>
         </div>
-
-        {/* Barra de Pesquisa */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Pesquisar produtos..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="px-16 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-lime-600"
-          />
-          {/* Ícone de Lupa Opcional */}
-          <svg
-            className="w-5 h-5 absolute right-3 top-3 text-gray-500"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-
-        {/* Verificação se o usuário está logado */}
-        <nav className="flex space-x-4">
-          {userName ? (
-            <>
-              <span className="text-white font-bold text-2xl">Bem-vindo, {userName}</span>
-              <button
-                onClick={handleLogout}
-                className="text-white bg-red-500 px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none"
-              >
-                Sair
-              </button>
-            </>
-          ) : (
-            <>
-              <a href="/login" className="bg-lime-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg hover:bg-lime-700 transition-colors">
-                Login
-              </a>
-             
-              <a href="/cadastro" className="bg-lime-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg hover:bg-lime-700 transition-colors">
-                Cadastro
-              </a>
-            </>
-          )}
-        </nav>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
-        {filteredProdutos.length > 0 ? (
-          filteredProdutos.map((produto) => (
-            <Card key={produto._id} className="shadow-lg p-6">
-              <div className="flex flex-col items-center">
-                {produto.imagemUrl ? (
-                  <img
-                    src={produto.imagemUrl}
-                    alt={produto.nome}
-                    className="rounded-lg h-48 object-cover mb-4"
-                  />
-                ) : (
-                  <img
-                    src="default-image.png"
-                    alt="Imagem não disponível"
-                    className="rounded-lg h-48 object-cover mb-4"
-                  />
-                )}
-                
-                <h2 className="text-xl font-semibold mb-2">{produto.nome}</h2>
-                <p className="text-gray-600 mb-2">Descrição: {produto.descricao}</p>
-                <p className="text-lg font-bold text-blue-500">Preço: R$ {produto.preco.toFixed(2)}</p>
-                <p className="text-sm text-gray-500">Categoria: {produto.categoria}</p>
+      {/* Alertas com animação */}
+      <div className="container mx-auto px-4 mt-4">
+        {error && (
+          <Alert variant="destructive" className="mb-4 animate-slideDown">
+            <AlertTitle>Erro</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-                {/* Exibe detalhes do empresário associado ao produto */}
-                {produto.empresario && (
-                  <>
-                    <p className="text-green-500 font-bold">Cashback: {produto.empresario.cashback}%</p>
-                    <p className="text-red-500 font-bold">
-                      Validade: {new Date(produto.empresario.validadeCashback).toLocaleDateString()}
-                    </p>
-                    <p className="text-gray-600 mt-2">Empresário: {produto.empresario.loja}</p>
-                  </>
-                )}
-
-                {/* Botão de Comprar */}
-                <button
-                  onClick={() => handleCompra(produto._id)}
-                  className="mt-4 px-6 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-700"
-                >
-                  Comprar
-                </button>
-              </div>
-            </Card>
-          ))
-        ) : (
-          <p className="col-span-full text-center text-gray-500">Nenhum produto encontrado.</p>
+        {success && (
+          <Alert className="mb-4 bg-lime-50 border-lime-500 text-lime-800 animate-slideDown">
+            <AlertTitle>Sucesso</AlertTitle>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
         )}
       </div>
+
+      {/* Grid de produtos com layout responsivo e moderno */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {loading ? (
+              <div className="col-span-full flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-600"></div>
+              </div>
+            ) : filteredProdutos.length > 0 ? (
+              filteredProdutos.map((produto) => (
+                <Card key={produto._id} className="group hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col">
+                  <div className="relative p-4 flex flex-col h-full">
+                    {/* Badge de cashback */}
+                    {produto.empresario && (
+                      <div className="absolute top-2 right-2 bg-lime-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+                        {produto.empresario.cashback}% Cashback
+                      </div>
+                    )}
+
+                    {/* Imagem do produto */}
+                    <div className="relative aspect-square mt-10 mb-4 overflow-hidden rounded-lg bg-zinc-100">
+                      <img
+                        src={produto.imagemUrl || "/api/placeholder/400/400"}
+                        alt={produto.nome}
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                      {/* Informações do produto */}
+                        <h2 className="text-xl font-semibold text-zinc-900 line-clamp-2">
+                          {produto.nome}
+                        </h2>
+                        <p className="text-zinc-600 text-sm line-clamp-2">
+                          {produto.descricao}
+                        </p>
+
+                      {/* Preço e outras coisas */}
+                      <div className="mt-auto">
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold text-zinc-900">
+                            R$ {produto.preco.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-zinc-500 bg-zinc-100 px-2 py-1 rounded">
+                            {produto.categoria}
+                          </span>
+                        </div>
+
+                        {produto.empresario && (
+                          <div className="pt-2 border-t border-zinc-200 mt-2">
+                            <p className="text-sm text-zinc-600">
+                              Loja: <span className="font-medium">{produto.empresario.loja}</span>
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              Válido até: {new Date(produto.empresario.validadeCashback).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                        
+
+                        {/* Botão de compra, alinhado ao fundo */}
+                        <div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                disabled={loading || !produto.empresario}
+                                className="w-full mt-4 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white shadow-sm"
+                              >
+                                {loading ? 'Processando...' : 'Comprar Agora'}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Compra</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Você está prestes a comprar {produto.nome} por R$ {produto.preco.toFixed(2)}.
+                                  {produto.empresario && (
+                                    <span className="block mt-2 text-lime-600 font-medium">
+                                      Você receberá {produto.empresario.cashback}% de cashback nesta compra!
+                                    </span>
+                                  )}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-zinc-200 text-zinc-700 hover:bg-zinc-50">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleCompra(produto)}
+                                  className="bg-lime-600 hover:bg-lime-700 text-white"
+                                >
+                                  Confirmar Compra
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-zinc-600">Nenhum produto encontrado.</p>
+                </div>
+              )}
+          </div>
+        </div>
     </div>
   );
 }
+
 
 export default Loja;

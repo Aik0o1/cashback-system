@@ -241,108 +241,111 @@ function Loja() {
       </div>
 
       {/* Grid de produtos com layout responsivo e moderno */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {loading ? (
-            <div className="col-span-full flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-600"></div>
-            </div>
-          ) : filteredProdutos.length > 0 ? (
-            filteredProdutos.map((produto) => (
-              <Card key={produto._id} className="group hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                <div className="relative p-4">
-                  {/* Badge de cashback */}
-                  {produto.empresario && (
-                     <div className="absolute top-2 right-2 bg-lime-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-sm">
-                     {produto.empresario.cashback}% Cashback
-                   </div>
-                  )}
-
-                  {/* Imagem do produto */}
-                  <div className="relative aspect-square mt-10 mb-4 overflow-hidden rounded-lg bg-zinc-100">
-                    <img
-                      src={produto.imagemUrl || "/api/placeholder/400/400"}
-                      alt={produto.nome}
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-
-                  {/* Informações do produto */}
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-semibold text-zinc-900 line-clamp-2">
-                      {produto.nome}
-                    </h2>
-                    <p className="text-zinc-600 text-sm line-clamp-2">
-                      {produto.descricao}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-zinc-900">
-                        R$ {produto.preco.toFixed(2)}
-                      </span>
-                      <span className="text-sm text-zinc-500 bg-zinc-100 px-2 py-1 rounded">
-                        {produto.categoria}
-                      </span>
-                    </div>
-
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {loading ? (
+              <div className="col-span-full flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-600"></div>
+              </div>
+            ) : filteredProdutos.length > 0 ? (
+              filteredProdutos.map((produto) => (
+                <Card key={produto._id} className="group hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col">
+                  <div className="relative p-4 flex flex-col h-full">
+                    {/* Badge de cashback */}
                     {produto.empresario && (
-                      <div className="pt-2 border-t border-zinc-200 mt-2">
-                        <p className="text-sm text-zinc-600">
-                          Loja: <span className="font-medium">{produto.empresario.loja}</span>
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          Válido até: {new Date(produto.empresario.validadeCashback).toLocaleDateString()}
-                        </p>
+                      <div className="absolute top-2 right-2 bg-lime-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+                        {produto.empresario.cashback}% Cashback
                       </div>
                     )}
 
-                    {/* Botão de compra */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          disabled={loading || !produto.empresario}
-                          className="w-full mt-4 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white shadow-sm"
-                        >
-                          {loading ? 'Processando...' : 'Comprar Agora'}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-white">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar Compra</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Você está prestes a comprar {produto.nome} por R$ {produto.preco.toFixed(2)}.
-                            {produto.empresario && (
-                              <span className="block mt-2 text-lime-600 font-medium">
-                                Você receberá {produto.empresario.cashback}% de cashback nesta compra!
-                              </span>
-                            )}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="border-zinc-200 text-zinc-700 hover:bg-zinc-50">
-                            Cancelar
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleCompra(produto)}
-                            className="bg-lime-600 hover:bg-lime-700 text-white"
-                          >
-                            Confirmar Compra
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                    {/* Imagem do produto */}
+                    <div className="relative aspect-square mt-10 mb-4 overflow-hidden rounded-lg bg-zinc-100">
+                      <img
+                        src={produto.imagemUrl || "/api/placeholder/400/400"}
+                        alt={produto.nome}
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                      {/* Informações do produto */}
+                        <h2 className="text-xl font-semibold text-zinc-900 line-clamp-2">
+                          {produto.nome}
+                        </h2>
+                        <p className="text-zinc-600 text-sm line-clamp-2">
+                          {produto.descricao}
+                        </p>
+
+                      {/* Preço e outras coisas */}
+                      <div className="mt-auto">
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold text-zinc-900">
+                            R$ {produto.preco.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-zinc-500 bg-zinc-100 px-2 py-1 rounded">
+                            {produto.categoria}
+                          </span>
+                        </div>
+
+                        {produto.empresario && (
+                          <div className="pt-2 border-t border-zinc-200 mt-2">
+                            <p className="text-sm text-zinc-600">
+                              Loja: <span className="font-medium">{produto.empresario.loja}</span>
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              Válido até: {new Date(produto.empresario.validadeCashback).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                        
+
+                        {/* Botão de compra, alinhado ao fundo */}
+                        <div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                disabled={loading || !produto.empresario}
+                                className="w-full mt-4 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white shadow-sm"
+                              >
+                                {loading ? 'Processando...' : 'Comprar Agora'}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Compra</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Você está prestes a comprar {produto.nome} por R$ {produto.preco.toFixed(2)}.
+                                  {produto.empresario && (
+                                    <span className="block mt-2 text-lime-600 font-medium">
+                                      Você receberá {produto.empresario.cashback}% de cashback nesta compra!
+                                    </span>
+                                  )}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-zinc-200 text-zinc-700 hover:bg-zinc-50">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleCompra(produto)}
+                                  className="bg-lime-600 hover:bg-lime-700 text-white"
+                                >
+                                  Confirmar Compra
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-zinc-600">Nenhum produto encontrado.</p>
                 </div>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <div className="text-zinc-400 text-lg">
-                Nenhum produto encontrado para sua busca.
-              </div>
-            </div>
-          )}
+              )}
+          </div>
         </div>
-      </div>
     </div>
   );
 }

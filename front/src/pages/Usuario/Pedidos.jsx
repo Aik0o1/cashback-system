@@ -12,10 +12,14 @@ const MeusPedidos = () => {
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userCashback, setUserCashback] = useState(0);
+  const [userId, setUserId] = useState(null)
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchPedidos();
+    fetchCashback()
   }, []);
 
   const fetchPedidos = async () => {
@@ -34,7 +38,7 @@ const MeusPedidos = () => {
       setUserName(storedUser);
   
       const response = await axios.get(
-        `https://cashback-testes.onrender.com/transacoes/usuario/pedidos/${userId}`,
+        `http://localhost:5050/transacoes/usuario/pedidos/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -59,6 +63,24 @@ const MeusPedidos = () => {
       setLoading(false);
     }
   };
+
+  const fetchCashback = async () => {
+    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
+
+    const response = await axios.get(`http://localhost:5050/users/${userId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+    console.log(response)
+    setUserCashback(response.data.cashback || 0)
+    
+  }
+  
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -150,6 +172,7 @@ const MeusPedidos = () => {
         </div>
       </header>
 
+
       {/* Page Title and Summary */}
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
@@ -166,8 +189,14 @@ const MeusPedidos = () => {
             <ShoppingBag className="h-5 w-5" />
             <span>Continuar Comprando</span>
           </Button>
+          
         </div>
-
+        <Card className="mt-10 mb-10 w-56  p-4  bg-lime-50 border-lime-500">
+  <h3 className="text-xl font-bold text-lime-700">Meu Cashback</h3>
+  <p className="text-2xl font-medium text-lime-900">
+    R$ {userCashback.toFixed(2)}
+  </p>
+</Card>
         {/* Alerts */}
         {error && (
           <Alert variant="destructive" className="mb-6 animate-slideDown">
@@ -236,7 +265,7 @@ const MeusPedidos = () => {
                     </div>
                     <div>
                       <h4 className="font-medium text-zinc-900">{pedido.produto.nome}</h4>
-                      <p className="text-sm text-zinc-600">Vendido por: {pedido.empresario.loja}</p>
+                      <p className="text-sm text-zinc-600">Vendido por: {pedido.empresario.nome}</p>
                     </div>
                   </div>
 

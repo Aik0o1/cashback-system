@@ -5,15 +5,18 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, ShoppingBag, Home, Trash2, User, LogOut } from 'lucide-react';
-
+import CashbackSelector from './CashbackSelector';
 function Carrinho() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [userName, setUserName] = useState(null);
+  const [userCashback, setUserCashback] = useState(0);
+const [usedCashback, setUsedCashback] = useState(0);
   const navigate = useNavigate();
 
+  
   useEffect(() => {
     checkUserLoggedIn();
   }, []);
@@ -31,7 +34,7 @@ function Carrinho() {
     setUserName(storedUser);
     
     try {
-      await axios.get('https://cashback-testes.onrender.com/transacoes', {
+      await axios.get('http://localhost:5050/transacoes', {
         headers: {
           'Authorization': `Bearer ${storedToken}`
         }
@@ -53,7 +56,7 @@ function Carrinho() {
       setError(null);
       
       const response = await axios.get(
-        `https://cashback-testes.onrender.com/transacoes/usuario/${userId}`,
+        `http://localhost:5050/transacoes/usuario/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -97,7 +100,7 @@ console.log(cartItems)
       }
 
       await axios.delete(
-        `https://cashback-testes.onrender.com/transacoes/deletar/${trasacaoId}`,
+        `http://localhost:5050/transacoes/deletar/${trasacaoId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -119,22 +122,34 @@ console.log(cartItems)
     }
   };
 
+
+  const handleCashbackUsage = (amount) => {
+    const total = calculateTotal();
+    const cashbackToUse = Math.min(amount, userCashback, total);
+    
+    setUsedCashback(cashbackToUse);
+    setUserCashback(prevCashback => prevCashback - cashbackToUse);
+  };
+
+  const handleCashbackChange = (value) => {
+    setUsedCashback(value);
+  };  
+
   const finalizarCompra = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-
-      if (!token || !userId) {
-        throw new Error('Usuário não está autenticado');
-      }
-
+  
+      const totalCashback = calculateTotalCashback();
+      const total = calculateTotal();
+  
       const response = await axios.post(
-        'https://cashback-testes.onrender.com/transacoes/bulk',
+        'http://localhost:5050/transacoes/bulk',
         {
           usuarioId: userId,
+          cashbackValor: totalCashback, // Novo cashback ganho
+          cashbackUsado: usedCashback, // Cashback usado nesta compra
+          valorTotal: calculateTotal() - usedCashback, // Valor final após deduzir o cashback
           items: cartItems.map(item => ({
             produtoId: item.produto._id,
             empresarioId: item.empresario._id,
@@ -181,6 +196,8 @@ console.log(cartItems)
     }, 0);
   
   };
+
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100">
@@ -318,31 +335,42 @@ console.log(cartItems)
             <div className="lg:col-span-1">
               <Card className="p-6 sticky top-24">
                 <h2 className="text-xl font-bold text-zinc-900 mb-4">Resumo do Pedido</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-zinc-600">
-                    <span>Subtotal</span>
-                    <span>R$ {calculateTotal().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-lime-600 font-medium">
-                    <span>Cashback Total</span>
-                    <span>R$ {calculateTotalCashback().toFixed(2)}</span>
-                  </div>
-                  <div className="pt-3 border-t border-zinc-200">
-                    <div className="flex justify-between text-xl font-bold text-zinc-900">
-                      <span>Total</span>
-                      <span>R$ {calculateTotal().toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={finalizarCompra}
-                    disabled={loading || cartItems.length === 0}
-                    className="w-full mt-6 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white"
-                  >
-                    {loading ? 'Processando...' : 'Finalizar Compra'}
-                  </Button>
-                </div>
-              </Card>
+
+                <CashbackSelector
+          total={calculateTotal()}
+          onCashbackChange={handleCashbackChange}
+        />
+             <div className="space-y-3">
+          <div className="flex justify-between text-zinc-600">
+            <span>Subtotal</span>
+            <span>R$ {calculateTotal().toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-lime-600 font-medium">
+            <span>Cashback a Receber</span>
+            <span>R$ {calculateTotalCashback().toFixed(2)}</span>
+          </div>
+          {usedCashback > 0 && (
+            <div className="flex justify-between text-lime-600 font-medium">
+              <span>Cashback Utilizado</span>
+              <span>- R$ {usedCashback.toFixed(2)}</span>
             </div>
+          )}
+          <div className="pt-3 border-t border-zinc-200">
+            <div className="flex justify-between text-xl font-bold text-zinc-900">
+              <span>Total</span>
+              <span>R$ {(calculateTotal() - usedCashback).toFixed(2)}</span>
+            </div>
+          </div>
+          <Button
+            onClick={finalizarCompra}
+            disabled={loading || cartItems.length === 0}
+            className="w-full mt-6 bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white"
+          >
+            {loading ? 'Processando...' : 'Finalizar Compra'}
+          </Button>
+        </div>
+      </Card>
+    </div>
           </div>
         )}
       </div>

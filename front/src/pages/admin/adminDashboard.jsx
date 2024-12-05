@@ -82,6 +82,7 @@ const AdminDashboard = () => {
   const filterTransactions = (transactions) => {
     return transactions.filter(transacao => {
       const transactionDate = new Date(transacao.dataCompra);
+      // const valor = transacao.produto.valor
       
       // Date filter
       const startDateMatch = !transactionFilters.startDate || 

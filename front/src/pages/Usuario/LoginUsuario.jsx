@@ -22,15 +22,20 @@ export default function LoginUsuario() {
       },
       body: JSON.stringify({ email, senha }),
     });
-    console.log(response)
 
     if (response.ok) {
       const data = await response.json();
       localStorage.setItem('token', data.token); // Armazena o token no localStorage
-      localStorage.setItem('user', data.usuario.username); // Armazena o nome do usuário no localStorage
+      localStorage.setItem('user', JSON.stringify(data.usuario));
       localStorage.setItem('userId', data.usuario._id); // Armazena o nome do usuário no localStorage
-      
-      navigate("/"); // Redireciona para o dashboard do usuário
+      localStorage.setItem('userType', data.usuario.userType); // Armazena o nome do usuário no localStorage
+      localStorage.setItem('username', data.usuario.username); // Armazena o nome do usuário no localStorage
+
+      if (data.usuario.userType == "admin"){
+        navigate("/admin")
+      }
+      else
+        navigate("/"); // Redireciona para o dashboard do usuário
     } else {
       const data = await response.json();
       setError(data.message); // Define a mensagem de erro

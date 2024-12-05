@@ -86,7 +86,7 @@ export default function CadastroProduto({ produto, onSuccess, onCancel }) {
           formData.append("imagem", selectedFile);
 
           response = await axios.put(
-            `https://cashback-testes.onrender.com/${produto._id}`,
+            `https://cashback-testes.onrender.com/produtos/${produto._id}`,
             formData,
             {
               headers: {

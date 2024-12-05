@@ -26,7 +26,7 @@ function Loja() {
   }, []);
 
   const checkUserLoggedIn = () => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem('username');
     const storedToken = localStorage.getItem('token');
     const storedId = localStorage.getItem('userId');
 
@@ -351,4 +351,4 @@ function Loja() {
 }
 
 
-export default Loja;
+export default Loja;  

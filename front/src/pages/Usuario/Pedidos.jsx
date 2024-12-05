@@ -29,7 +29,7 @@ const MeusPedidos = () => {
   
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem('username');
   
       if (!token || !userId) {
         throw new Error('Usuário não está autenticado');
@@ -38,7 +38,7 @@ const MeusPedidos = () => {
       setUserName(storedUser);
   
       const response = await axios.get(
-        `http://localhost:5050/transacoes/usuario/pedidos/${userId}`,
+        `https://cashback-testes.onrender.com/transacoes/usuario/pedidos/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -68,7 +68,7 @@ const MeusPedidos = () => {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('token');
 
-    const response = await axios.get(`http://localhost:5050/users/${userId}`,
+    const response = await axios.get(`https://cashback-testes.onrender.com/users/${userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ const MeusPedidos = () => {
       pedido.empresario.nome.toLowerCase().includes(searchTermLower)
     );
   });
-
+console.log(filteredPedidos)
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -230,64 +230,69 @@ const MeusPedidos = () => {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPedidos.map((pedido) => (
-              <Card key={pedido._id} className="group hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white">
-                <div className="p-6">
-                  {/* Cabeçalho do Pedido */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-medium text-zinc-900">
-                        Pedido #{pedido._id.slice(-6)}
-                      </h3>
-                      <p className="text-sm text-zinc-500">
-                        {new Date(pedido.dataCompra).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <span className="px-3 py-1 text-sm font-medium text-lime-700 bg-lime-100 rounded-full">
-                      Concluído
-                    </span>
-                  </div>
+           {filteredPedidos.map((pedido) => (
+  <Card key={pedido._id} className="group hover:shadow-xl transition-shadow duration-300 overflow-hidden bg-white">
+    <div className="p-6">
+      {/* Cabeçalho do Pedido */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-lg font-medium text-zinc-900">
+            Pedido #{pedido._id.slice(-6)}
+          </h3>
+          <p className="text-sm text-zinc-500">
+            {new Date(pedido.dataCompra).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        </div>
+        <span className="px-3 py-1 text-sm font-medium text-lime-700 bg-lime-100 rounded-full">
+          Concluído
+        </span>
+      </div>
 
-                  {/* Imagem e Detalhes do Produto */}
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-zinc-100">
-                      <img
-                        src={pedido.produto.imagemUrl || "/api/placeholder/80/80"}
-                        alt={pedido.produto.nome}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-zinc-900">{pedido.produto.nome}</h4>
-                      <p className="text-sm text-zinc-600">Vendido por: {pedido.empresario.nome}</p>
-                    </div>
-                  </div>
+      {/* Imagem e Detalhes do Produto */}
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-zinc-100">
+          <img
+            src={pedido.produto?.imagemUrl || "/api/placeholder/80/80"}
+            alt={pedido.produto?.nome || "Produto"}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div>
+          <h4 className="font-medium text-zinc-900">{pedido.produto?.nome || 'Nome não disponível'}</h4>
+          <p className="text-sm text-zinc-600">
+            Vendido por: {pedido.empresario?.nome || 'Vendedor não identificado'}
+          </p>
+        </div>
+      </div>
 
-                  {/* Valores e Cashback */}
-                  <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-600">Valor da compra:</span>
-                      <span className="text-zinc-900 font-medium">
-                        {formatCurrency(pedido.valorCompra)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center bg-lime-50 p-3 rounded-lg">
-                      <div>
-                        <span className="text-lime-700 font-medium">Cashback ({pedido.empresario.cashback}%):</span>
-                      </div>
-                      <span className="text-lime-700 font-medium">
-                        {formatCurrency(pedido.valorCashback)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+      {/* Valores e Cashback */}
+      <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-zinc-600">Valor da compra:</span>
+          <span className="text-zinc-900 font-medium">
+            {formatCurrency(pedido.valorCompra || 0)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center bg-lime-50 p-3 rounded-lg">
+          <div>
+            <span className="text-lime-700 font-medium">
+              Cashback ({pedido.empresario?.cashback || 0}%):
+            </span>
+          </div>
+          <span className="text-lime-700 font-medium">
+            {formatCurrency(pedido.valorCashback || 0)}
+          </span>
+        </div>
+      </div>
+    </div>
+  </Card>
+
             ))}
           </div>
         )}

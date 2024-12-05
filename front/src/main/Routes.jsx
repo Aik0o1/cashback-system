@@ -11,6 +11,7 @@ import Login from '@/pages/Login.jsx';
 import Cadastro from '@/pages/Cadastro.jsx';
 import Carrinho from '@/pages/Usuario/Carrinho.jsx';
 import MeusPedidos from '@/pages/Usuario/Pedidos.jsx'
+import AdminDashboard from '@/pages/admin/adminDashboard.jsx';
 const AppRoutes = () => {
   return (
     <Router>
@@ -26,7 +27,7 @@ const AppRoutes = () => {
         <Route path="/cadastro" element={<Cadastro />}/>
         <Route path="/carrinho" element={<Carrinho />}/>
         <Route path="/pedidos" element={<MeusPedidos />}/>
-
+        <Route path="/admin"  element={<AdminDashboard />}/>
 
 
       </Routes>

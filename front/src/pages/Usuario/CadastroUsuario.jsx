@@ -61,7 +61,7 @@ const useFieldValidation = () => {
     if (!value) return;
 
     try {
-      await axios.post(`http://localhost:5050/users/validate`, {
+      await axios.post(`https://cashback-testes.onrender.com/users/validate`, {
         field,
         value,
       });
@@ -121,7 +121,7 @@ export default function CadastroUsuario() {
         return;
       }
 
-      const response = await axios.post("http://localhost:5050/users", data);
+      const response = await axios.post("https://cashback-testes.onrender.com/users", data);
       
       const { token, user } = response.data;
       localStorage.setItem("token", token);

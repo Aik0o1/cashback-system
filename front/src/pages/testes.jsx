@@ -135,4 +135,76 @@ const MeusPedidos = () => {
         ) : pedidos.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
             <ShoppingCart className="mx-auto h-12 w-12 text-zinc-400" />
-            <h3 className="mt-4 text-lg font-medium text-zinc-900">Nenhum pedido concluído</h
+            <h3 className="mt-4 text-lg font-medium text-zinc-900">Nenhum pedido concluído</h3>
+            <p className="mt-2 text-zinc-600">Você ainda não possui pedidos concluídos.</p>
+            <Button
+              onClick={() => navigate('/')}
+              className="mt-4 bg-lime-600 hover:bg-lime-700 text-white"
+            >
+              Ir às compras
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {pedidos.map((pedido) => (
+              <Card key={pedido._id} className="overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-zinc-900">
+                        Pedido #{pedido._id.slice(-6)}
+                      </h3>
+                      <p className="text-sm text-zinc-500">
+                        {new Date(pedido.dataPedido).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 text-sm font-medium text-lime-700 bg-lime-100 rounded-full">
+                      Concluído
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {pedido.itens.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <p className="text-zinc-900 font-medium">{item.nome}</p>
+                          <p className="text-sm text-zinc-600">Qtd: {item.quantidade}</p>
+                        </div>
+                        <p className="text-zinc-900 font-medium">
+                          R$ {(item.preco * item.quantidade).toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-zinc-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-600">Subtotal:</span>
+                      <span className="text-zinc-900 font-medium">
+                        R$ {pedido.valorTotal.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-lime-600 font-medium">Cashback:</span>
+                      <span className="text-lime-600 font-medium">
+                        R$ {(pedido.valorTotal * 0.05).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MeusPedidos;

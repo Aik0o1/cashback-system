@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import Empresario from '../models/Empresario.js';
 import jwt from 'jsonwebtoken'; // Adicionando jwt
+import Produto from '../models/Produtos.js';
 
 class EmpresarioController {
   // Método para cadastrar um novo empresário
@@ -101,35 +102,76 @@ class EmpresarioController {
   }
 
   // Método para atualizar os dados do empresário (UPDATE)
-static async atualizarEmpresario(req, res) {
-  try {
-    const { nomeLoja, cashback, validadeCashback } = req.body;
-    const empresarioId = req.params.id; // Obtém o ID do empresário da URL
-
-    // Verifica se o empresário existe
-    const empresario = await Empresario.findById(empresarioId);
-    if (!empresario) {
-      return res.status(404).json({ message: "Empresário não encontrado" });
+  static async atualizarEmpresario(req, res) {
+    try {
+      const { 
+        nome, 
+        email, 
+        loja, 
+        cnpj, 
+        cashback, 
+        validadeCashback 
+      } = req.body;
+      
+      const empresarioId = req.params.id; // Obtém o ID do empresário da URL
+      
+      // Verifica se o empresário existe
+      const empresario = await Empresario.findById(empresarioId);
+      
+      if (!empresario) {
+        return res.status(404).json({ message: "Empresário não encontrado" });
+      }
+      
+      // Atualiza os dados do empresário
+      if (nome) empresario.nome = nome;
+      if (email) empresario.email = email;
+      if (loja) empresario.loja = loja; 
+      if (cnpj) empresario.cnpj = cnpj;
+      if (cashback) empresario.cashback = cashback;
+      if (validadeCashback) empresario.validadeCashback = validadeCashback;
+      
+      // Salva as alterações no banco de dados
+      await empresario.save();
+      
+      // Retorna a resposta com os dados atualizados (excluindo a senha)
+      const { senha, ...empresarioAtualizado } = empresario._doc;
+      
+      res.status(200).json({
+        message: "Dados do empresário atualizados com sucesso",
+        empresario: empresarioAtualizado,
+      });
+    } catch (erro) {
+      res.status(500).json({ 
+        message: `${erro.message} - falha ao atualizar dados do empresário` 
+      });
     }
-
-    // Atualiza os dados do empresário
-    if (nomeLoja) empresario.nomeLoja = nomeLoja;
-    if (cashback) empresario.cashback = cashback;
-    if (validadeCashback) empresario.validadeCashback = validadeCashback;
-
-    // Salva as alterações no banco de dados
-    await empresario.save();
-
-    // Retorna a resposta com os dados atualizados (excluindo a senha)
-    const { senha, ...empresarioAtualizado } = empresario._doc;
-    res.status(200).json({
-      message: "Dados do empresário atualizados com sucesso",
-      empresario: empresarioAtualizado,
-    });
-  } catch (erro) {
-    res.status(500).json({ message: `${erro.message} - falha ao atualizar dados do empresário` });
   }
-}
+
+  static async deletarEmpresario(req, res) {
+    try {
+      const empresarioId = req.params.id; // Obtém o ID do empresário da URL
+  
+      // Verifica se o empresário existe
+      const empresario = await Empresario.findById(empresarioId);
+      if (!empresario) {
+        return res.status(404).json({ message: "Empresário não encontrado" });
+      }
+  
+      // Primeiro, delete todos os produtos associados ao empresário
+      await Produto.deleteMany({ empresario: empresarioId });
+  
+      // Remove o empresário do banco de dados
+      await Empresario.findByIdAndDelete(empresarioId);
+  
+      res.status(200).json({
+        message: "Empresário e todos os seus produtos foram deletados com sucesso"
+      });
+    } catch (erro) {
+      res.status(500).json({
+        message: `${erro.message} - falha ao deletar empresário`
+      });
+    }
+  }
 
 }
 

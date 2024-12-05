@@ -25,4 +25,7 @@ routes.get("/transacoes/usuario/pedidos/:usuarioId", authMiddleware, TransacaoCo
 
 routes.get("/transacoes/verificar/:produtoId", authMiddleware, TransacaoController.verificarTransacoesProduto);
 
+// Rota para exportar transações como CSV (EXPORT) - Autenticada
+routes.get("/transacoes/export/csv", authMiddleware, TransacaoController.exportToCsv);
+
 export default routes;

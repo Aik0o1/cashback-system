@@ -26,6 +26,34 @@ class UserController {
     }
   }
 
+  static async listarUsuarios(req, res) {
+    try {
+      const usuarios = await user.find();
+      res.status(200).json(usuarios);
+    } catch (erro) {
+      res.status(500).json({ message: `${erro.message} - falha ao listar usuários` });
+    }
+  }
+
+  static async listarUsuarioPorId(req, res) {
+    try {
+      const usuarioId = req.params.id; // Obtém o ID do empresário dos parâmetros da URL
+  
+      const usuario = await user.findById(usuarioId);
+  
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuario não encontrado" });
+      }
+  
+      // Exclui a senha antes de enviar a resposta
+      const { password, ...usuarioSemSenha } = usuario._doc;
+      res.status(200).json(usuarioSemSenha);
+    } catch (erro) {
+      res.status(500).json({ message: `${erro.message} - falha ao buscar usuário` });
+    }
+  }
+
+
   static async cadastrarUser(req, res) {
     try {
       // Validar username e email novamente antes de criar
@@ -98,6 +126,64 @@ class UserController {
       });
     }
   }
+
+  static async atualizarUsuario(req, res) {
+    try {
+      const { username, firstName, lastName, email, password, userType } = req.body;
+      const userId = req.params.id; // Obtém o ID do empresário da URL
+  
+      // Verifica se o empresário existe
+      const usuario = await user.findById(userId);
+      if (!usuario) {
+        return res.status(404).json({ message: "Empresário não encontrado" });
+      }
+  
+      // Atualiza os dados do empresário
+      if (username) usuario.username = username;
+      if (firstName) usuario.firstName = firstName;
+      if (lastName) usuario.lastName = lastName;
+      if (email) usuario.email = email;
+      if (password) usuario.password = password;
+      if (userType) usuario.userType = userType;
+
+  
+      // Salva as alterações no banco de dados
+      await usuario.save();
+  
+      // Retorna a resposta com os dados atualizados (excluindo a senha)
+      const { senha, ...usuarioAtualizado } = usuario._doc;
+      res.status(200).json({
+        message: "Dados do usuário atualizados com sucesso",
+        usuario: usuarioAtualizado,
+      });
+    } catch (erro) {
+      res.status(500).json({ message: `${erro.message} - falha ao atualizar dados do usuário` });
+    }
+  }
+  static async deletarUsuario(req, res) {
+  try {
+    const userId = req.params.id; // Obtém o ID do usuário da URL
+
+    // Verifica se o usuário existe
+    const usuario = await user.findById(userId);
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    // Remove o usuário do banco de dados
+    await user.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      message: "Usuário deletado com sucesso"
+    });
+  } catch (erro) {
+    res.status(500).json({ 
+      message: `${erro.message} - falha ao deletar usuário` 
+    });
+  }
+}
+
+  
 }
 
 export default UserController;

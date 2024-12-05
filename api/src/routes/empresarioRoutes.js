@@ -12,6 +12,8 @@ routes.post("/empresario/login", EmpresarioController.login);
 routes.post("/empresario", EmpresarioController.cadastrarEmpresario);
 routes.get('/empresario/:id', EmpresarioController.listarEmpresarioPorId);
 
-routes.put('/empresarios/atualizar/:id', EmpresarioController.atualizarEmpresario);
+routes.put('/empresario/atualizar/:id', EmpresarioController.atualizarEmpresario);
+routes.delete("/empresario/:id", EmpresarioController.deletarEmpresario);
+
 
 export default routes;

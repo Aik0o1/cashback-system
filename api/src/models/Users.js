@@ -30,6 +30,10 @@ const usersSchema = new mongoose.Schema({
         required: true,
         enum: ['admin', 'empresario', 'usuario'],  
         default: 'usuario'  
+    },
+    cashback: {
+        type: Number,
+        default: 0
     }
 }, {versionKey: false})
 

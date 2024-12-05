@@ -53,7 +53,7 @@ class TransacaoController {
     try {
       const transacoes = await Transacao.find()
         .populate("produto", "nome")
-        .populate("usuario", "nome")
+        .populate("usuario", "username")
         .populate("empresario", "nome")
         .sort({ dataCompra: -1 });
 
@@ -198,40 +198,61 @@ class TransacaoController {
   // Método para criar múltiplas transações em lote
   static async atualizarTransacoesParaPago(req, res) {
     try {
-      const { usuarioId, items } = req.body;
+      const { usuarioId, cashbackValor, cashbackUsado, valorTotal, items } = req.body;
       const usuario = await Usuario.findById(usuarioId);
-
+  
       if (!usuario)
         return res.status(404).json({ message: "Usuário não encontrado" });
-
+  
       const transacoesAtualizadas = [];
-
+      let totalCashbackAdicionado = 0;
+  
+      // Validate that user has enough cashback to use
+      if (cashbackUsado > usuario.cashback) {
+        return res.status(400).json({ 
+          message: "Saldo de cashback insuficiente para esta compra" 
+        });
+      }
+  
+      // Subtract used cashback from user's total cashback
+      usuario.cashback -= cashbackUsado;
+  
       for (const item of items) {
         const { produtoId, empresarioId } = item;
-
+  
         const transacao = await Transacao.findOne({
           produto: produtoId,
           usuario: usuarioId,
           empresario: empresarioId,
-          status: "pendente", // Garante que apenas transações pendentes sejam atualizadas
+          status: "pendente",
         });
-
+  
         if (!transacao) {
           return res.status(404).json({
             message: `Transação pendente para o produto ${produtoId} não encontrada`,
           });
         }
-
+  
         // Atualiza o status para "concluída"
         transacao.status = "concluída";
         await transacao.save();
-
+  
+        // Adiciona o cashback ao usuário
+        totalCashbackAdicionado += transacao.valorCashback;
+  
         transacoesAtualizadas.push(transacao);
       }
-
+  
+      // Adiciona o novo cashback ganho na compra
+      usuario.cashback += totalCashbackAdicionado;
+      await usuario.save();
+  
       res.status(200).json({
         message: "Transações atualizadas para pagas com sucesso",
         transacoes: transacoesAtualizadas,
+        cashbackUsado,
+        cashbackAdicionado: totalCashbackAdicionado,
+        cashbackTotal: usuario.cashback
       });
     } catch (erro) {
       res.status(500).json({

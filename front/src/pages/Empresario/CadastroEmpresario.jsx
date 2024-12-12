@@ -136,7 +136,7 @@ export default function CadastroEmpresario() {
 
     try {
       const response = await axios.post(
-        "https://cashback-testes.onrender.com/empresario",
+        "http://localhost:5050/empresario",
         {
           ...data,
           cashback: parseFloat(data.cashback),

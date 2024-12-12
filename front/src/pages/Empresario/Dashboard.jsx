@@ -43,17 +43,17 @@ const Dashboard = () => {
       try {
         const empresarioId = localStorage.getItem('empresarioId');
           
-        const transacoesResponse = await axios.get(`https://cashback-testes.onrender.com/transacoes/empresario/${empresarioId}`, {
+        const transacoesResponse = await axios.get(`http://localhost:5050/transacoes/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTransacoes(transacoesResponse.data.filter(t => t.status === 'concluída'));
         
-        const empresarioResponse = await axios.get(`https://cashback-testes.onrender.com/empresario/${empresarioId}`, {
+        const empresarioResponse = await axios.get(`http://localhost:5050/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmpresario(empresarioResponse.data);
 
-        const produtosResponse = await axios.get(`https://cashback-testes.onrender.com/produtos/empresario/${empresarioId}`, {
+        const produtosResponse = await axios.get(`http://localhost:5050/produtos/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProdutos(produtosResponse.data);
@@ -78,7 +78,7 @@ const Dashboard = () => {
     try {
       if (!window.confirm('Tem certeza que deseja excluir esta transação?')) return;
 
-      await axios.delete(`https://cashback-testes.onrender.com/transacoes/deletar/${transacaoId}`, {
+      await axios.delete(`http://localhost:5050/transacoes/deletar/${transacaoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -119,7 +119,7 @@ const Dashboard = () => {
     
     try {
       const checkResponse = await axios.get(
-        `https://cashback-testes.onrender.com/transacoes/verificar/${produtoId}`,
+        `http://localhost:5050/transacoes/verificar/${produtoId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -134,7 +134,7 @@ const Dashboard = () => {
 
       if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
 
-      await axios.delete(`https://cashback-testes.onrender.com/produtos/${produtoId}`, {
+      await axios.delete(`http://localhost:5050/produtos/${produtoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -191,7 +191,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       try {
         await axios.put(
-          `https://cashback-testes.onrender.com/empresarios/atualizar/${empresario._id}`,
+          `http://localhost:5050/empresarios/atualizar/${empresario._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );

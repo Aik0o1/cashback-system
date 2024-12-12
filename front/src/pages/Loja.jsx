@@ -46,7 +46,7 @@ function Loja() {
     try {
       console.log(localStorage.getItem('token'))
       setLoading(true);
-      const response = await axios.get('https://cashback-testes.onrender.com/produtos');
+      const response = await axios.get('http://localhost:5050/produtos');
       setProdutos(response.data);
     } catch (error) {
       setError('Erro ao carregar produtos. Tente novamente mais tarde.');
@@ -78,7 +78,7 @@ function Loja() {
       setLoading(true);
 
       const response = await axios.post(
-        'https://cashback-testes.onrender.com/transacoes',
+        'http://localhost:5050/transacoes',
         {
           produtoId: produto._id,
           usuarioId: userId,

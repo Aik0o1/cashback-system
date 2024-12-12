@@ -33,7 +33,7 @@ const MeusPedidos = () => {
       setUserName(storedUser);
   
       const response = await axios.get(
-        `https://cashback-testes.onrender.com/transacoes/usuario/pedidos/${userId}`,
+        `http://localhost:5050/transacoes/usuario/pedidos/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -20,7 +20,7 @@ const CashbackSelector = ({ total, onCashbackChange }) => {
       const token = localStorage.getItem('token');
       
       const response = await axios.get(
-        `https://cashback-testes.onrender.com/users/${userId}`,
+        `http://localhost:5050/users/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

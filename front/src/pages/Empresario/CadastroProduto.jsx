@@ -86,7 +86,7 @@ export default function CadastroProduto({ produto, onSuccess, onCancel }) {
           formData.append("imagem", selectedFile);
 
           response = await axios.put(
-            `https://cashback-testes.onrender.com/produtos/${produto._id}`,
+            `http://localhost:5050/produtos/${produto._id}`,
             formData,
             {
               headers: {
@@ -98,7 +98,7 @@ export default function CadastroProduto({ produto, onSuccess, onCancel }) {
         } else {
           // Se não houver nova imagem, enviar apenas os dados como JSON
           response = await axios.put(
-            `https://cashback-testes.onrender.com/produtos/${produto._id}`,
+            `http://localhost:5050/produtos/${produto._id}`,
             updateData,
             {
               headers: {
@@ -120,7 +120,7 @@ export default function CadastroProduto({ produto, onSuccess, onCancel }) {
         }
 
         response = await axios.post(
-          "https://cashback-testes.onrender.com/produtos",
+          "http://localhost:5050/produtos",
           formData,
           {
             headers: {

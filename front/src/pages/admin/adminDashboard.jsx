@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 import {
   Users,
   Store,
@@ -16,7 +17,8 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
@@ -24,6 +26,7 @@ import * as XLSX from 'xlsx';
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [empresarios, setEmpresarios] = useState([]);
+  const [produtos, setProdutos] = useState([]);
   const [transacoes, setTransacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('usuarios');
@@ -31,6 +34,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [editingEmpresario, setEditingEmpresario] = useState(null);
+  const [saldoAdmin, setSaldoAdmin] = useState(null)
 
   // Pagination states
   const [userPage, setUserPage] = useState(1);
@@ -42,31 +46,78 @@ const AdminDashboard = () => {
     startDate: '',
     endDate: '',
     empresarioId: '',
-    usuarioId: ''
+    usuarioId: '',
+    produtoId: ''
   });
   const navigate = useNavigate();
-  
+  const StatCard = ({ title, value, icon: Icon, bgColor }) => (
+    <Card className="relative overflow-hidden bottom-3">
+      <div className={`absolute inset-0 ${bgColor} opacity-10`} />
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">{title}</p>
+            <h3 className="text-2xl font-bold mt-2">{value}</h3>
+          </div>
+          <div className={`p-3 rounded-full ${bgColor} bg-opacity-20`}>
+            <Icon className={`h-6 w-6 ${bgColor.replace('bg-', 'text-')}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  useEffect(() => {
+    const getSaldoAdmin = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedId = localStorage.getItem('userId');
+
+      if (!storedUser || !storedToken || !storedId) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const saldo = await axios.get('http://localhost:5050/users/admin/saldo/:id', {
+          headers: {
+            'Authorization': `Bearer ${storedToken}`
+          }
+        });
+        setSaldoAdmin(saldo)
+      } catch (error) {
+        if (error.response?.status === 401) {
+          console.log('erro')
+        }
+      }
+    };
+
+  }, [saldoAdmin])
+
   const fetchData = async (token) => {
-    try { 
+    try {
       // Fetch users
-      const usersResponse = await axios.get('https://cashback-testes.onrender.com/users', {
+      const usersResponse = await axios.get('http://localhost:5050/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(usersResponse.data);
 
       // Fetch empresarios
-      const empresariosResponse = await axios.get('https://cashback-testes.onrender.com/empresario', {
+      const empresariosResponse = await axios.get('http://localhost:5050/empresario', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmpresarios(empresariosResponse.data);
 
       // Fetch all transactions
-      const transacoesResponse = await axios.get('https://cashback-testes.onrender.com/transacoes', {
+      const transacoesResponse = await axios.get('http://localhost:5050/transacoes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransacoes(transacoesResponse.data);
       console.log(transacoesResponse.data)
 
+      const produtosResponse = await axios.get('http://localhost:5050/produtos', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProdutos(produtosResponse.data);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setAlert({
@@ -83,23 +134,29 @@ const AdminDashboard = () => {
     return transactions.filter(transacao => {
       const transactionDate = new Date(transacao.dataCompra);
       // const valor = transacao.produto.valor
-      
+      // console.log(transacao)
       // Date filter
-      const startDateMatch = !transactionFilters.startDate || 
+      const startDateMatch = !transactionFilters.startDate ||
         transactionDate >= new Date(transactionFilters.startDate);
-      
-      const endDateMatch = !transactionFilters.endDate || 
+
+      const endDateMatch = !transactionFilters.endDate ||
         transactionDate <= new Date(transactionFilters.endDate);
-      
+
       // Empresario filter
-      const empresarioMatch = !transactionFilters.empresarioId || 
+      const empresarioMatch = !transactionFilters.empresarioId ||
         transacao.empresario?._id === transactionFilters.empresarioId;
-      
+
       // Usuario filter
-      const usuarioMatch = !transactionFilters.usuarioId || 
+      const usuarioMatch = !transactionFilters.usuarioId ||
         transacao.usuario?._id === transactionFilters.usuarioId;
 
-      return startDateMatch && endDateMatch && empresarioMatch && usuarioMatch;
+      const produtoMatch = !transactionFilters.produtoId ||
+        transacao.produto?.nome === transactionFilters.produtoId;
+
+
+
+
+      return startDateMatch && endDateMatch && empresarioMatch && usuarioMatch && produtoMatch;
     });
   };
   useEffect(() => {
@@ -130,7 +187,7 @@ const AdminDashboard = () => {
     try {
       if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
 
-      await axios.delete(`https://cashback-testes.onrender.com/users/${userId}`, {
+      await axios.delete(`http://localhost:5050/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -157,7 +214,7 @@ const AdminDashboard = () => {
     try {
       if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
 
-      await axios.delete(`https://cashback-testes.onrender.com/empresario/${userId}`, {
+      await axios.delete(`http://localhost:5050/empresario/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -185,20 +242,20 @@ const AdminDashboard = () => {
       id: transacao._id,
       produtoId: transacao.produto?._id,
       produtoNome: transacao.produto?.nome,
-      usuarioNOme: transacao.usuario.username || N/A,
+      usuarioNOme: transacao.usuario.username || N / A,
       empresarioNome: transacao.empresario?.nome || 'N/A',
       valorCompra: transacao.valorCompra,
       valorCashback: transacao.valorCashback,
       status: transacao.status,
       dataCompra: transacao.dataCompra
     }));
-  
+
     const worksheet = XLSX.utils.json_to_sheet(flattenedTransacoes);
-    
+
     const workbook = XLSX.utils.book_new();
-    
+
     XLSX.utils.book_append_sheet(workbook, worksheet, "Transações");
-    
+
     XLSX.writeFile(workbook, "relatorio_transacoes.xlsx");
   };
 
@@ -216,7 +273,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.put(
-          `https://cashback-testes.onrender.com/users/atualizar/${editingUser._id}`,
+          `http://localhost:5050/users/atualizar/${editingUser._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -322,7 +379,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.put(
-          `https://cashback-testes.onrender.com/empresario/atualizar/${editingEmpresario._id}`,
+          `http://localhost:5050/empresario/atualizar/${editingEmpresario._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -458,16 +515,16 @@ const AdminDashboard = () => {
                 Painel Admin
               </span>
             </div>
-              <Button
-                    onClick={() => {
-                      localStorage.clear();
-                      navigate('/login');
-                    }}
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </Button>
+            <Button
+              onClick={() => {
+                localStorage.clear();
+                navigate('/login');
+              }}
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
@@ -504,10 +561,12 @@ const AdminDashboard = () => {
                   Gerenciar
                 </TabsTrigger>
               </TabsList>
+
             </CardContent>
           </Card>
 
           <TabsContent value="usuarios">
+
             <Card>
               <CardHeader>
                 <CardTitle>Usuários Cadastrados</CardTitle>
@@ -703,160 +762,192 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="transacoes">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Histórico de Transações</CardTitle>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setTransactionFilters({
-                startDate: '',
-                endDate: '',
-                empresarioId: '',
-                usuarioId: ''
-              })}
-            >
-              Limpar Filtros
-            </Button>
-            <Button
-              variant="outline"
-              onClick={exportTransacoesToExcel}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filters Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Data Inicial</label>
-              <input
-                type="date"
-                value={transactionFilters.startDate}
-                onChange={(e) => setTransactionFilters(prev => ({
-                  ...prev, 
-                  startDate: e.target.value
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Data Final</label>
-              <input
-                type="date"
-                value={transactionFilters.endDate}
-                onChange={(e) => setTransactionFilters(prev => ({
-                  ...prev, 
-                  endDate: e.target.value
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Empresário</label>
-              <select
-                value={transactionFilters.empresarioId}
-                onChange={(e) => setTransactionFilters(prev => ({
-                  ...prev, 
-                  empresarioId: e.target.value
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              >
-                <option value="">Todos Empresários</option>
-                {empresarios.map(empresario => (
-                  <option key={empresario._id} value={empresario._id}>
-                    {empresario.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Usuário</label>
-              <select
-                value={transactionFilters.usuarioId}
-                onChange={(e) => setTransactionFilters(prev => ({
-                  ...prev, 
-                  usuarioId: e.target.value
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              >
-                <option value="">Todos Usuários</option>
-                {users.map(user => (
-                  <option key={user._id} value={user._id}>
-                    {user.username}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            <StatCard
+              title="Saldo"
+              value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorTotal, 0).toFixed(2)}`}
+              icon={DollarSign}
+              bgColor="bg-emerald-500">
 
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Pesquisar transações..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setTransacoesPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-            />
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">ID</th>
-                <th className="text-left p-2">Produto</th>
-                <th className="text-left p-2">Usuário</th>
-                <th className="text-left p-2">Empresário</th>
-                <th className="text-left p-2">Valor</th>
-                <th className="text-left p-2">Data</th>
-                <th className="text-left p-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginateData(
-                filterTransactions(
-                  transacoes.filter(transacao =>
-                    transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                ),
-                transacoesPage
-              ).map((transacao) => (
-                <tr key={transacao._id} className="border-b hover:bg-zinc-50">
-                  <td className="p-2">{transacao._id}</td>
-                  <td className="p-2">{transacao.produto?.nome}</td>
-                  <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
-                  <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
-                  <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
-                  <td className="p-2">
-                    {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="p-2">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${transacao.status === 'concluida'
-                        ? 'bg-green-100 text-green-800'
-                        : transacao.status === 'pendente'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}
+
+            </StatCard>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Histórico de Transações</CardTitle>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setTransactionFilters({
+                      startDate: '',
+                      endDate: '',
+                      empresarioId: '',
+                      usuarioId: ''
+                    })}
+                  >
+                    Limpar Filtros
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={exportTransacoesToExcel}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filters Section */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Data Inicial</label>
+                    <input
+                      type="date"
+                      value={transactionFilters.startDate}
+                      onChange={(e) => setTransactionFilters(prev => ({
+                        ...prev,
+                        startDate: e.target.value
+                      }))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Data Final</label>
+                    <input
+                      type="date"
+                      value={transactionFilters.endDate}
+                      onChange={(e) => setTransactionFilters(prev => ({
+                        ...prev,
+                        endDate: e.target.value
+                      }))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Empresário</label>
+                    <select
+                      value={transactionFilters.produtoId}
+                      onChange={(e) => setTransactionFilters(prev => ({
+                        ...prev,
+                        produtoNome: e.target.value
+                      }))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                     >
-                      {transacao.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Pagination remains the same */}
-        </CardContent>
-      </Card>
-    </TabsContent>
+                      <option value="">Produtos</option>
+                      {produtos.map(empresario => (
+                        <option key={produtos._id} value={produtos._id}>
+                          {produtos.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Empresário</label>
+                    <select
+                      value={transactionFilters.empresarioId}
+                      onChange={(e) => setTransactionFilters(prev => ({
+                        ...prev,
+                        empresarioId: e.target.value
+                      }))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    >
+                      <option value="">Todos Empresários</option>
+                      {empresarios.map(empresario => (
+                        <option key={empresario._id} value={empresario._id}>
+                          {empresario.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Usuário</label>
+                    <select
+                      value={transactionFilters.usuarioId}
+                      onChange={(e) => setTransactionFilters(prev => ({
+                        ...prev,
+                        usuarioId: e.target.value
+                      }))}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    >
+                      <option value="">Todos Usuários</option>
+                      {users.map(user => (
+                        <option key={user._id} value={user._id}>
+                          {user.username}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar transações..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setTransacoesPage(1);
+                    }}
+                    className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">ID</th>
+                      <th className="text-left p-2">Produto</th>
+                      <th className="text-left p-2">Usuário</th>
+                      <th className="text-left p-2">Empresário</th>
+                      <th className="text-left p-2">Valor Compra</th>
+                      <th className="text-left p-2">Valor Cashback</th>
+                      <th className="text-left p-2">Valor Total</th>
+                      <th className="text-left p-2">Data</th>
+                      <th className="text-left p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginateData(
+                      filterTransactions(
+                        transacoes.filter(transacao =>
+                          transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          transacao.produto?._id.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                      ),
+                      transacoesPage
+                    ).map((transacao) => (
+                      <tr key={transacao._id} className="border-b hover:bg-zinc-50">
+                        <td className="p-2">{transacao._id}</td>
+                        <td className="p-2">{transacao.produto?.nome}</td>
+                        <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
+                        <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
+                        <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
+                        <td className="p-2">R$ {transacao.valorCashback.toFixed(2)}</td>
+
+                        <td className="p-2">R$ {transacao.valorTotal.toFixed(2)}</td>
+                        <td className="p-2">
+                          {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${transacao.status === 'concluida'
+                              ? 'bg-green-100 text-green-800'
+                              : transacao.status === 'pendente'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                              }`}
+                          >
+                            {transacao.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {/* Pagination remains the same */}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="edicao">
             <Card>
@@ -887,7 +978,7 @@ const AdminDashboard = () => {
                         try {
                           const token = localStorage.getItem('token');
                           const response = await axios.post(
-                            'https://cashback-testes.onrender.com/users',
+                            'http://localhost:5050/users',
                             newUser,
                             { headers: { Authorization: `Bearer ${token}` } }
                           );
@@ -996,7 +1087,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="font-medium">Valor Total de Transações:</p>
                         <p className="text-2xl font-bold text-green-600">
-                          R$ {transacoes.reduce((total, t) => total + t.valorCompra, 0).toFixed(2)}
+                          R$ {saldoAdmin}
                         </p>
                       </div>
                     </div>

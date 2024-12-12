@@ -1,4 +1,4 @@
-import mongoose, { version } from "mongoose";
+import mongoose from "mongoose";
 
 const usersSchema = new mongoose.Schema({
     id: {type: mongoose.Schema.Types.ObjectId},
@@ -6,7 +6,7 @@ const usersSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true
-      },
+    },
     firstName: {
         type: String,
         required: true
@@ -31,11 +31,20 @@ const usersSchema = new mongoose.Schema({
         enum: ['admin', 'empresario', 'usuario'],  
         default: 'usuario'  
     },
+    // Renomeamos cashback para saldo para administradores
+    saldo: {
+        type: Number,
+        default: function() {
+            return this.userType === 'admin' ? 0 : undefined;
+        }
+    },
     cashback: {
         type: Number,
-        default: 0
+        default: function() {
+            return this.userType !== 'admin' ? 0 : undefined;
+        }
     }
-}, {versionKey: false})
+}, {versionKey: false});
 
 const user = mongoose.model("Usuario", usersSchema);
 export default user;

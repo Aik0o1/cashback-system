@@ -7,6 +7,7 @@ const TransacaoSchema = new mongoose.Schema({
   valorCompra: { type: Number, required: true },
   valorCashback: { type: Number, required: true },
   dataCompra: { type: Date, default: Date.now },
+  valorTotal: {type: Number, required: true},
   status: { type: String, enum: ['pendente', 'concluída'], default: 'pendente' },
 });
 

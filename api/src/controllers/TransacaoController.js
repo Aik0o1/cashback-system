@@ -27,6 +27,7 @@ class TransacaoController {
 
       const taxaCashback = parseFloat(empresario.cashback) || 0;
       const valorCashback = valorCompra * (taxaCashback / 100);
+      const valorTotal = valorCompra - valorCashback
 
       const novaTransacao = await Transacao.create({
         produto: produtoId,
@@ -34,6 +35,7 @@ class TransacaoController {
         empresario: empresarioId,
         valorCompra,
         valorCashback,
+        valorTotal,
         status: "pendente",
       });
 

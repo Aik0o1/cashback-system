@@ -21,7 +21,7 @@ app.use(express.json()); // Importante para garantir que o express parseie requi
 // const corsOptions = {
 //   origin: [
 //       'http://localhost:5173', 
-//       'https://cashback-testes.onrender.com', 
+//       'http://localhost:5050', 
 //       'https://cashback-testes.vercel.app' // Inclua o link do frontend
 //   ],
 //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

@@ -9,6 +9,7 @@ const EmpresarioSchema = new mongoose.Schema({
   dataCadastro: { type: Date, default: Date.now },
   cashback: { type: String, required: true },
   validadeCashback: { type: Date, required: true },
+  saldo: {type: Number, required: true, default:0},
   produtos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'produtos' }]  // Array de produtos relacionados
 });
 

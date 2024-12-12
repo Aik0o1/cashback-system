@@ -70,7 +70,13 @@ class UserController {
 
       const { password, ...rest } = req.body;
       const hashedPassword = await bcrypt.hash(password, 10);
-      const novoUser = await user.create({ ...rest, password: hashedPassword });
+      
+      // Se o usuário for admin, inicializa o saldo como 0
+      const novoUser = await user.create({ 
+        ...rest, 
+        password: hashedPassword,
+        ...(rest.userType === 'admin' && { saldo: 0 })
+      });
 
       const token = jwt.sign(
         { id: novoUser._id, userType: novoUser.userType },
@@ -89,7 +95,6 @@ class UserController {
       });
     }
   }
-  
   static async login(req, res) {
     const { email, senha } = req.body;
 
@@ -179,6 +184,61 @@ class UserController {
   } catch (erro) {
     res.status(500).json({ 
       message: `${erro.message} - falha ao deletar usuário` 
+    });
+  }
+}
+
+static async getSaldoAdmin(req, res) {
+  try {
+    const adminId = req.params.id;
+    
+    const admin = await user.findById(adminId);
+    
+    if (!admin) {
+      return res.status(404).json({ message: "Admin não encontrado" });
+    }
+    
+    if (admin.userType !== 'admin') {
+      return res.status(403).json({ message: "Usuário não é um administrador" });
+    }
+    
+    res.status(200).json({ 
+      message: "Saldo do admin recuperado com sucesso",
+      saldo: admin.saldo 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: `${error.message} - falha ao recuperar saldo do admin` 
+    });
+  }
+}
+
+// Método para atualizar o saldo do admin
+static async atualizarSaldoAdmin(req, res) {
+  try {
+    const adminId = req.params.id;
+    const { saldo } = req.body;
+    
+    const admin = await user.findById(adminId);
+    
+    if (!admin) {
+      return res.status(404).json({ message: "Admin não encontrado" });
+    }
+    
+    if (admin.userType !== 'admin') {
+      return res.status(403).json({ message: "Usuário não é um administrador" });
+    }
+    
+    admin.saldo = saldo;
+    await admin.save();
+    
+    res.status(200).json({ 
+      message: "Saldo do admin atualizado com sucesso",
+      saldo: admin.saldo 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: `${error.message} - falha ao atualizar saldo do admin` 
     });
   }
 }

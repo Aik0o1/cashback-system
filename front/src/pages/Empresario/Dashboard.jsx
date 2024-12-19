@@ -34,7 +34,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('produtos');
   const [alert, setAlert] = useState({ show: false, message: '', type: '' });
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,18 +42,18 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       try {
         const empresarioId = localStorage.getItem('empresarioId');
-          
-        const transacoesResponse = await axios.get(`http://localhost:5050/transacoes/empresario/${empresarioId}`, {
+
+        const transacoesResponse = await axios.get(`https://cashback-testes.onrender.com/transacoes/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTransacoes(transacoesResponse.data.filter(t => t.status === 'concluída'));
-        
-        const empresarioResponse = await axios.get(`http://localhost:5050/empresario/${empresarioId}`, {
+
+        const empresarioResponse = await axios.get(`https://cashback-testes.onrender.com/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmpresario(empresarioResponse.data);
 
-        const produtosResponse = await axios.get(`http://localhost:5050/produtos/empresario/${empresarioId}`, {
+        const produtosResponse = await axios.get(`https://cashback-testes.onrender.com/produtos/empresario/${empresarioId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProdutos(produtosResponse.data);
@@ -74,14 +74,14 @@ const Dashboard = () => {
 
   const handleDeleteTransacao = async (transacaoId) => {
     const token = localStorage.getItem('token');
-    
+
     try {
       if (!window.confirm('Tem certeza que deseja excluir esta transação?')) return;
 
-      await axios.delete(`http://localhost:5050/transacoes/deletar/${transacaoId}`, {
+      await axios.delete(`https://cashback-testes.onrender.com/transacoes/deletar/${transacaoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setTransacoes(transacoes.filter(t => t._id !== transacaoId));
       setAlert({
         show: true,
@@ -116,10 +116,10 @@ const Dashboard = () => {
 
   const handleDelete = async (produtoId) => {
     const token = localStorage.getItem('token');
-    
+
     try {
       const checkResponse = await axios.get(
-        `http://localhost:5050/transacoes/verificar/${produtoId}`,
+        `https://cashback-testes.onrender.com/transacoes/verificar/${produtoId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -134,10 +134,10 @@ const Dashboard = () => {
 
       if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
 
-      await axios.delete(`http://localhost:5050/produtos/${produtoId}`, {
+      await axios.delete(`https://cashback-testes.onrender.com/produtos/${produtoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setProdutos(produtos.filter(p => p._id !== produtoId));
       setAlert({
         show: true,
@@ -157,7 +157,7 @@ const Dashboard = () => {
 
   const handleUpdateSuccess = async (updatedProduto) => {
     try {
-      const newProdutos = produtos.map(p => 
+      const newProdutos = produtos.map(p =>
         p._id === updatedProduto._id ? updatedProduto : p
       );
       setProdutos(newProdutos);
@@ -191,7 +191,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       try {
         await axios.put(
-          `http://localhost:5050/empresarios/atualizar/${empresario._id}`,
+          `https://cashback-testes.onrender.com/empresarios/atualizar/${empresario._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -275,18 +275,24 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto py-8 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
             title="Total de Vendas"
             value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorCompra, 0).toFixed(2)}`}
             icon={DollarSign}
             bgColor="bg-emerald-500"
           />
+            <StatCard
+              title="Saldo Recebido"
+              value={`R$ ${empresario.saldo.toFixed(2)}`}
+              icon={DollarSign}
+              bgColor="bg-blue-500"
+            />
           <StatCard
             title="Total de Cashback"
             value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorCashback, 0).toFixed(2)}`}
             icon={Percent}
-            bgColor="bg-blue-500"
+            bgColor="bg-red-500"
           />
           <StatCard
             title="Produtos Ativos"
@@ -351,7 +357,7 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {produtos
-                .filter(produto => 
+                .filter(produto =>
                   produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   produto.descricao.toLowerCase().includes(searchTerm.toLowerCase())
                 )
@@ -369,7 +375,7 @@ const Dashboard = () => {
                         <h2 className="text-xl font-semibold text-zinc-900">{produto.nome}</h2>
                         <p className="text-zinc-600 text-sm line-clamp-2">{produto.descricao}</p>
                         <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-lime-600">
+                          <span className="text-2xl font-bold text-lime-600">
                             R$ {produto.preco.toFixed(2)}
                           </span>
                           <div className="text-sm text-zinc-500">
@@ -402,80 +408,80 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="cadastro">
-  <Card>
-    <CardHeader>
-      <CardTitle>{editingProduto ? 'Editar Produto' : 'Cadastrar Novo Produto'}</CardTitle>
-      {editingProduto && (
-        <Button 
-          variant="outline" 
-          onClick={handleCancelEdit}
-          className="flex items-center gap-2"
-        >
-          Cancelar Edição
-        </Button>
-      )}
-    </CardHeader>
-    <CardContent>
-      <CadastroProduto 
-        produto={editingProduto} // Changed from editingProduto to produto
-        onSuccess={handleUpdateSuccess}
-        onCancel={handleCancelEdit}
-      />
-    </CardContent>
-  </Card>
-</TabsContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>{editingProduto ? 'Editar Produto' : 'Cadastrar Novo Produto'}</CardTitle>
+                {editingProduto && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="flex items-center gap-2"
+                  >
+                    Cancelar Edição
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <CadastroProduto
+                  produto={editingProduto} // Changed from editingProduto to produto
+                  onSuccess={handleUpdateSuccess}
+                  onCancel={handleCancelEdit}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
 
-<TabsContent value="transacoes">
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Transações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Data</th>
-                  <th className="text-left py-3 px-4">Produto</th>
-                  <th className="text-left py-3 px-4">Cliente</th>
-                  <th className="text-right py-3 px-4">Valor</th>
-                  <th className="text-right py-3 px-4">Cashback</th>
-                  <th className="text-right py-3 px-4">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transacoes.map((transacao) => (
-                  <tr key={transacao._id} className="border-b hover:bg-zinc-50">
-                    <td className="py-3 px-4">
-                      {new Date(transacao.dataCompra).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">{transacao.produto.nome}</td>
-                    <td className="py-3 px-4">{transacao.usuario._id}</td>
-                    <td className="py-3 px-4 text-right">
-                      R$ {transacao.valorCompra.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 text-right text-lime-600">
-                      R$ {transacao.valorCashback.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteTransacao(transacao._id)}
-                        className="hover:bg-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </TabsContent>
+          <TabsContent value="transacoes">
+            <Card>
+              <CardHeader>
+                <CardTitle>Histórico de Transações</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4">Data</th>
+                        <th className="text-left py-3 px-4">Produto</th>
+                        <th className="text-left py-3 px-4">Cliente</th>
+                        <th className="text-right py-3 px-4">Valor</th>
+                        <th className="text-right py-3 px-4">Cashback</th>
+                        <th className="text-right py-3 px-4">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transacoes.map((transacao) => (
+                        <tr key={transacao._id} className="border-b hover:bg-zinc-50">
+                          <td className="py-3 px-4">
+                            {new Date(transacao.dataCompra).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4">{transacao.produto.nome}</td>
+                          <td className="py-3 px-4">{transacao.usuario._id}</td>
+                          <td className="py-3 px-4 text-right">
+                            R$ {transacao.valorCompra.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-lime-600">
+                            R$ {transacao.valorCashback.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteTransacao(transacao._id)}
+                              className="hover:bg-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="empresa">
             <Card>

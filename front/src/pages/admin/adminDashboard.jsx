@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   Users,
@@ -35,7 +36,7 @@ const AdminDashboard = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [editingEmpresario, setEditingEmpresario] = useState(null);
   const [saldoAdmin, setSaldoAdmin] = useState(null)
-
+  const [updateSaldoAmount, setUpdateSaldoAmount] = useState('');
   // Pagination states
   const [userPage, setUserPage] = useState(1);
   const [empresarioPage, setEmpresarioPage] = useState(1);
@@ -47,11 +48,13 @@ const AdminDashboard = () => {
     endDate: '',
     empresarioId: '',
     usuarioId: '',
-    produtoId: ''
+    produtoId: '',
+    produtoNome: ''
   });
+
   const navigate = useNavigate();
   const StatCard = ({ title, value, icon: Icon, bgColor }) => (
-    <Card className="relative overflow-hidden bottom-3">
+    <Card className="relative overflow-hidden bottom-3 top-3">
       <div className={`absolute inset-0 ${bgColor} opacity-10`} />
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
@@ -67,10 +70,65 @@ const AdminDashboard = () => {
     </Card>
   );
 
+  const [selectedTransactions, setSelectedTransactions] = useState(new Set());
+  
+  // Handle individual transaction selection
+  const handleSelectTransaction = (transactionId) => {
+    const newSelected = new Set(selectedTransactions);
+    if (newSelected.has(transactionId)) {
+      newSelected.delete(transactionId);
+    } else {
+      newSelected.add(transactionId);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  // Handle select all transactions
+  const handleSelectAll = () => {
+    if (selectedTransactions.size === transacoes.filter(t => t.statusPagamentoAdmin !== 'paga').length) {
+      setSelectedTransactions(new Set());
+    } else {
+      const newSelected = new Set(
+        transacoes
+          .filter(t => t.statusPagamentoAdmin !== 'paga')
+          .map(t => t._id)
+      );
+      setSelectedTransactions(newSelected);
+    }
+  };
+
+  // Handle batch payments
+  const handleBatchPayment = async () => {
+    if (!window.confirm(`Deseja realizar o pagamento de ${selectedTransactions.size} transações selecionadas?`)) {
+      return;
+    }
+
+    try {
+      for (const transactionId of selectedTransactions) {
+        const transaction = transacoes.find(t => t._id === transactionId);
+        await handleEmpresarioPayment(transaction);
+      }
+      setSelectedTransactions(new Set()); // Clear selections after payment
+      setAlert({
+        show: true,
+        message: 'Pagamentos em lote realizados com sucesso!',
+        type: 'success'
+      });
+    } catch (error) {
+      setAlert({
+        show: true,
+        message: 'Erro ao processar pagamentos em lote. Por favor, tente novamente.',
+        type: 'error'
+      });
+    }
+  };
+
+
   useEffect(() => {
-    const getSaldoAdmin = async () => {
+    const updateAdminSaldo = async () => {
       const storedToken = localStorage.getItem('token');
       const storedId = localStorage.getItem('userId');
+      const storedUser = localStorage.getItem('user');
 
       if (!storedUser || !storedToken || !storedId) {
         navigate('/login');
@@ -78,43 +136,164 @@ const AdminDashboard = () => {
       }
 
       try {
-        const saldo = await axios.get('http://localhost:5050/users/admin/saldo/:id', {
-          headers: {
-            'Authorization': `Bearer ${storedToken}`
+        // Calcula o saldo total baseado nas transações
+        const totalSaldo = transacoes.reduce((acc, t) => {
+          if (t.statusPagamentoAdmin !== 'paga') {
+            // Somar apenas transações que ainda não foram pagas
+            return acc + t.valorTotal;
           }
-        });
-        setSaldoAdmin(saldo)
+          return acc;
+        }, 0);
+
+        // Atualiza o saldo do admin no backend
+        const response = await axios.put(
+          `https://cashback-testes.onrender.com/users/admin/saldo/${storedId}`,
+          { saldo: totalSaldo },
+          {
+            headers: {
+              'Authorization': `Bearer ${storedToken}`,
+            },
+          }
+        );
+
+        setSaldoAdmin(response.data.saldo);
       } catch (error) {
+        console.error('Erro ao atualizar saldo:', error);
         if (error.response?.status === 401) {
-          console.log('erro')
+          navigate('/login');
         }
       }
     };
 
-  }, [saldoAdmin])
+    // Atualiza o saldo apenas se houver transações pendentes
+    if (transacoes.length > 0) {
+      updateAdminSaldo();
+    }
+  }, [transacoes, navigate]);
+
+  const getSaldoAdmin = async () => {
+    const storedToken = localStorage.getItem('token'); // Token armazenado no localStorage
+    const storedId = localStorage.getItem('userId');   // ID do administrador armazenado no localStorage
+
+    if (!storedToken || !storedId) {
+      console.error('Token ou ID do administrador não encontrado.');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`https://cashback-testes.onrender.com/users/admin/saldo/${storedId}`, {
+        headers: {
+          'Authorization': `Bearer ${storedToken}`,
+        },
+      });
+      setSaldoAdmin(response.data.saldo); // Atualiza o estado com o saldo retornado
+    } catch (error) {
+      console.error('Erro ao buscar saldo do administrador:', error);
+    }
+  };
+
+
+  useEffect(() => {
+    getSaldoAdmin(); // Chama a função para buscar o saldo ao montar o componente
+  }, []);
+
+
+
+
+  const handleEmpresarioPayment = async (transacao) => {
+    const storedToken = localStorage.getItem('token');
+    const adminId = localStorage.getItem('userId');
+
+    try {
+      // Obtém saldo atual do admin
+      
+      const adminResponse = await axios.get(
+        `https://cashback-testes.onrender.com/users/admin/saldo/${adminId}`,
+        {
+          headers: { 'Authorization': `Bearer ${storedToken}` },
+        }
+      );
+      const currentAdminSaldo = adminResponse.data.saldo;
+
+      // Obtém dados do empresário
+      const empresarioResponse = await axios.get(
+        `https://cashback-testes.onrender.com/empresario/${transacao.empresario._id}`,
+        {
+          headers: { 'Authorization': `Bearer ${storedToken}` },
+        }
+      );
+      const empresario = empresarioResponse.data;
+
+      // Calcula novos saldos
+      const newAdminSaldo = currentAdminSaldo - transacao.valorTotal;
+      const newEmpresarioSaldo = (empresario.saldo || 0) + transacao.valorTotal;
+
+      // Atualiza saldos e status no backend
+      await Promise.all([
+        axios.put(
+          `https://cashback-testes.onrender.com/users/admin/saldo/${adminId}`,
+          { saldo: newAdminSaldo },
+          { headers: { 'Authorization': `Bearer ${storedToken}` } }
+        ),
+        axios.put(
+          `https://cashback-testes.onrender.com/empresario/atualizar/${transacao.empresario._id}`,
+          { ...empresario, saldo: newEmpresarioSaldo },
+          { headers: { 'Authorization': `Bearer ${storedToken}` } }
+        ),
+        axios.put(
+          `https://cashback-testes.onrender.com/transacoes/atualizarsaldo/${transacao._id}`,
+          { ...transacao, statusPagamentoAdmin: 'paga' },
+          { headers: { 'Authorization': `Bearer ${storedToken}` } }
+        ),
+      ]);
+
+      // Atualiza estado local
+      setSaldoAdmin(newAdminSaldo);
+      setTransacoes((prevTransacoes) =>
+        prevTransacoes.map((t) =>
+          t._id === transacao._id
+            ? { ...t, statusPagamentoAdmin: 'paga' }
+            : t
+        )
+      );
+
+      setAlert({
+        show: true,
+        message: 'Pagamento realizado com sucesso!',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error.response?.data || error.message);
+      setAlert({
+        show: true,
+        message: 'Erro ao processar pagamento. Por favor, tente novamente.',
+        type: 'error',
+      });
+    }
+  };
 
   const fetchData = async (token) => {
     try {
       // Fetch users
-      const usersResponse = await axios.get('http://localhost:5050/users', {
+      const usersResponse = await axios.get('https://cashback-testes.onrender.com/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(usersResponse.data);
 
       // Fetch empresarios
-      const empresariosResponse = await axios.get('http://localhost:5050/empresario', {
+      const empresariosResponse = await axios.get('https://cashback-testes.onrender.com/empresario', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmpresarios(empresariosResponse.data);
 
       // Fetch all transactions
-      const transacoesResponse = await axios.get('http://localhost:5050/transacoes', {
+      const transacoesResponse = await axios.get('https://cashback-testes.onrender.com/transacoes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransacoes(transacoesResponse.data);
       console.log(transacoesResponse.data)
 
-      const produtosResponse = await axios.get('http://localhost:5050/produtos', {
+      const produtosResponse = await axios.get('https://cashback-testes.onrender.com/produtos', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProdutos(produtosResponse.data);
@@ -130,35 +309,35 @@ const AdminDashboard = () => {
     }
   };
 
+
   const filterTransactions = (transactions) => {
     return transactions.filter(transacao => {
       const transactionDate = new Date(transacao.dataCompra);
-      // const valor = transacao.produto.valor
-      // console.log(transacao)
+  
       // Date filter
       const startDateMatch = !transactionFilters.startDate ||
         transactionDate >= new Date(transactionFilters.startDate);
-
+  
       const endDateMatch = !transactionFilters.endDate ||
         transactionDate <= new Date(transactionFilters.endDate);
-
+  
       // Empresario filter
       const empresarioMatch = !transactionFilters.empresarioId ||
         transacao.empresario?._id === transactionFilters.empresarioId;
-
+  
       // Usuario filter
       const usuarioMatch = !transactionFilters.usuarioId ||
         transacao.usuario?._id === transactionFilters.usuarioId;
-
-      const produtoMatch = !transactionFilters.produtoId ||
-        transacao.produto?.nome === transactionFilters.produtoId;
-
-
-
-
+  
+      // Produto filter (agora com nome do produto)
+      const produtoMatch = !transactionFilters.produtoNome ||
+        transacao.produto?.nome.toLowerCase().includes(transactionFilters.produtoNome.toLowerCase());
+  
+      // Verifica se todos os filtros coincidem
       return startDateMatch && endDateMatch && empresarioMatch && usuarioMatch && produtoMatch;
     });
   };
+  
   useEffect(() => {
     const token = localStorage.getItem('token');
 
@@ -187,7 +366,7 @@ const AdminDashboard = () => {
     try {
       if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
 
-      await axios.delete(`http://localhost:5050/users/${userId}`, {
+      await axios.delete(`https://cashback-testes.onrender.com/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -214,7 +393,7 @@ const AdminDashboard = () => {
     try {
       if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
 
-      await axios.delete(`http://localhost:5050/empresario/${userId}`, {
+      await axios.delete(`https://cashback-testes.onrender.com/empresario/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -234,6 +413,8 @@ const AdminDashboard = () => {
       });
     }
   };
+
+
 
   const exportTransacoesToExcel = () => {
     console.log(transacoes[0].empresario._id)
@@ -273,7 +454,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.put(
-          `http://localhost:5050/users/atualizar/${editingUser._id}`,
+          `https://cashback-testes.onrender.com/users/atualizar/${editingUser._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -379,7 +560,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.put(
-          `http://localhost:5050/empresario/atualizar/${editingEmpresario._id}`,
+          `https://cashback-testes.onrender.com/empresario/atualizar/${editingEmpresario._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -510,7 +691,11 @@ const AdminDashboard = () => {
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-end space-x-4">
+              <span className="bg-gradient-to-r from-lime-500 to-lime-600 text-white py-2 px-4 rounded-lg text-lg font-bold shadow-sm">
+                Uespi CashBack
+              </span>
+
               <span className="bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg text-lg font-bold shadow-sm">
                 Painel Admin
               </span>
@@ -529,7 +714,7 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto py-8 px-4">
+      <main className="container mx-auto py-8 px-4 w-full">
         {alert.show && (
           <Alert
             variant={alert.type === 'success' ? 'default' : 'destructive'}
@@ -592,7 +777,6 @@ const AdminDashboard = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2">ID</th>
                           <th className="text-left p-2">Nome de Usuário</th>
                           <th className="text-left p-2">Nome Completo</th>
                           <th className="text-left p-2">Email</th>
@@ -611,7 +795,6 @@ const AdminDashboard = () => {
                           userPage
                         ).map((user) => (
                           <tr key={user._id} className="border-b hover:bg-zinc-50">
-                            <td className="p-2">{user._id}</td>
                             <td className="p-2">{user.username}</td>
                             <td className="p-2">{`${user.firstName} ${user.lastName}`}</td>
                             <td className="p-2">{user.email}</td>
@@ -761,190 +944,291 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="transacoes">
-            <StatCard
-              title="Saldo"
-              value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorTotal, 0).toFixed(2)}`}
-              icon={DollarSign}
-              bgColor="bg-emerald-500">
+          <TabsContent value="transacoes" className="">
+  <StatCard
+    title="Saldo"
+    value={`R$ ${saldoAdmin.toFixed(2)}`}
+    icon={DollarSign}
+    bgColor="bg-emerald-500"
+  />
+  <Card className="relative top-5">
+    <CardHeader className="flex flex-row items-center justify-between">
+      <CardTitle>Histórico de Transações</CardTitle>
+      <div className="flex space-x-2">
+        <Button
+          variant="outline"
+          onClick={() => setTransactionFilters({
+            startDate: '',
+            endDate: '',
+            empresarioId: '',
+            usuarioId: '',
+            produtoId: '',
+            produtoNome: ''
+          })}
+        >
+          Limpar Filtros
+        </Button>
+        <Button
+          variant="outline"
+          onClick={exportTransacoesToExcel}
+        >
+          <FileDown className="h-4 w-4 mr-2" />
+          Exportar Excel
+        </Button>
+      </div>
+    </CardHeader>
+    <CardContent>
+      {/* Filters Section */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Data Inicial</label>
+          <input
+            type="date"
+            value={transactionFilters.startDate}
+            onChange={(e) => setTransactionFilters(prev => ({
+              ...prev,
+              startDate: e.target.value
+            }))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Data Final</label>
+          <input
+            type="date"
+            value={transactionFilters.endDate}
+            onChange={(e) => setTransactionFilters(prev => ({
+              ...prev,
+              endDate: e.target.value
+            }))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Produto</label>
+          <select
+            value={transactionFilters.produtoNome}
+            onChange={(e) => setTransactionFilters(prev => ({
+              ...prev,
+              produtoNome: e.target.value
+            }))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1"
+          >
+            <option value="">Produtos</option>
+            {produtos.map(produto => (
+              <option key={produto._id} value={produto.nome}>
+                {produto.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Empresário</label>
+          <select
+            value={transactionFilters.empresarioId}
+            onChange={(e) => setTransactionFilters(prev => ({
+              ...prev,
+              empresarioId: e.target.value
+            }))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1"
+          >
+            <option value="">Todos Empresários</option>
+            {empresarios.map(empresario => (
+              <option key={empresario._id} value={empresario._id}>
+                {empresario.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Usuário</label>
+          <select
+            value={transactionFilters.usuarioId}
+            onChange={(e) => setTransactionFilters(prev => ({
+              ...prev,
+              usuarioId: e.target.value
+            }))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1"
+          >
+            <option value="">Todos Usuários</option>
+            {users.map(user => (
+              <option key={user._id} value={user._id}>
+                {user.username}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5" />
+        <input
+          type="text"
+          placeholder="Pesquisar transações..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setTransacoesPage(1);
+          }}
+          className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+        />
+      </div>
 
-            </StatCard>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Histórico de Transações</CardTitle>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setTransactionFilters({
-                      startDate: '',
-                      endDate: '',
-                      empresarioId: '',
-                      usuarioId: ''
-                    })}
-                  >
-                    Limpar Filtros
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={exportTransacoesToExcel}
-                  >
-                    <FileDown className="h-4 w-4 mr-2" />
-                    Exportar Excel
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Filters Section */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Data Inicial</label>
-                    <input
-                      type="date"
-                      value={transactionFilters.startDate}
-                      onChange={(e) => setTransactionFilters(prev => ({
-                        ...prev,
-                        startDate: e.target.value
-                      }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Data Final</label>
-                    <input
-                      type="date"
-                      value={transactionFilters.endDate}
-                      onChange={(e) => setTransactionFilters(prev => ({
-                        ...prev,
-                        endDate: e.target.value
-                      }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Empresário</label>
-                    <select
-                      value={transactionFilters.produtoId}
-                      onChange={(e) => setTransactionFilters(prev => ({
-                        ...prev,
-                        produtoNome: e.target.value
-                      }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    >
-                      <option value="">Produtos</option>
-                      {produtos.map(empresario => (
-                        <option key={produtos._id} value={produtos._id}>
-                          {produtos.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Empresário</label>
-                    <select
-                      value={transactionFilters.empresarioId}
-                      onChange={(e) => setTransactionFilters(prev => ({
-                        ...prev,
-                        empresarioId: e.target.value
-                      }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    >
-                      <option value="">Todos Empresários</option>
-                      {empresarios.map(empresario => (
-                        <option key={empresario._id} value={empresario._id}>
-                          {empresario.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Usuário</label>
-                    <select
-                      value={transactionFilters.usuarioId}
-                      onChange={(e) => setTransactionFilters(prev => ({
-                        ...prev,
-                        usuarioId: e.target.value
-                      }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    >
-                      <option value="">Todos Usuários</option>
-                      {users.map(user => (
-                        <option key={user._id} value={user._id}>
-                          {user.username}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+      {/* Batch Selection Controls */}
+      <div className="mb-4 flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            checked={selectedTransactions.size === filterTransactions(transacoes).filter(t => t.statusPagamentoAdmin !== 'paga').length}
+            onCheckedChange={() => {
+              if (selectedTransactions.size === filterTransactions(transacoes).filter(t => t.statusPagamentoAdmin !== 'paga').length) {
+                setSelectedTransactions(new Set());
+              } else {
+                const newSelected = new Set(
+                  filterTransactions(transacoes)
+                    .filter(t => t.statusPagamentoAdmin !== 'paga')
+                    .map(t => t._id)
+                );
+                setSelectedTransactions(newSelected);
+              }
+            }}
+          />
+          <span>Selecionar Todos</span>
+        </div>
+        <Button
+          onClick={async () => {
+            if (!window.confirm(`Deseja realizar o pagamento de ${selectedTransactions.size} transações selecionadas?`)) {
+              return;
+            }
 
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar transações..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setTransacoesPage(1);
-                    }}
-                    className="w-full pl-10 pr-4 py-2 rounded-full border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">ID</th>
-                      <th className="text-left p-2">Produto</th>
-                      <th className="text-left p-2">Usuário</th>
-                      <th className="text-left p-2">Empresário</th>
-                      <th className="text-left p-2">Valor Compra</th>
-                      <th className="text-left p-2">Valor Cashback</th>
-                      <th className="text-left p-2">Valor Total</th>
-                      <th className="text-left p-2">Data</th>
-                      <th className="text-left p-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginateData(
-                      filterTransactions(
-                        transacoes.filter(transacao =>
-                          transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          transacao.produto?._id.toLowerCase().includes(searchTerm.toLowerCase())
-                        )
-                      ),
-                      transacoesPage
-                    ).map((transacao) => (
-                      <tr key={transacao._id} className="border-b hover:bg-zinc-50">
-                        <td className="p-2">{transacao._id}</td>
-                        <td className="p-2">{transacao.produto?.nome}</td>
-                        <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
-                        <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
-                        <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
-                        <td className="p-2">R$ {transacao.valorCashback.toFixed(2)}</td>
+            try {
+              for (const transactionId of selectedTransactions) {
+                const transaction = transacoes.find(t => t._id === transactionId);
+                await handleEmpresarioPayment(transaction);
+              }
+              setSelectedTransactions(new Set());
+              setAlert({
+                show: true,
+                message: 'Pagamentos em lote realizados com sucesso!',
+                type: 'success'
+              });
+            } catch (error) {
+              setAlert({
+                show: true,
+                message: 'Erro ao processar pagamentos em lote. Por favor, tente novamente.',
+                type: 'error'
+              });
+            }
+          }}
+          disabled={selectedTransactions.size === 0}
+          className="bg-green-500 hover:bg-green-600"
+        >
+          <DollarSign className="h-4 w-4 mr-2" />
+          Pagar Selecionados ({selectedTransactions.size})
+        </Button>
+      </div>
 
-                        <td className="p-2">R$ {transacao.valorTotal.toFixed(2)}</td>
-                        <td className="p-2">
-                          {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="p-2">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${transacao.status === 'concluida'
-                              ? 'bg-green-100 text-green-800'
-                              : transacao.status === 'pendente'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                              }`}
-                          >
-                            {transacao.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {/* Pagination remains the same */}
+      {/* Transactions Table */}
+      <table className="w-full">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left p-2">Selecionar</th>
+            <th className="text-left p-2">Produto</th>
+            <th className="text-left p-2">Usuário</th>
+            <th className="text-left p-2">Empresário</th>
+            <th className="text-left p-2">Valor de Compra</th>
+            <th className="text-left p-2">Cashback</th>
+            <th className="text-left p-2">Valor Total</th>
+            <th className="text-left p-2">Data</th>
+            <th className="text-left p-2">Status de venda</th>
+            <th className="text-left p-2">Status de Pagamento</th>
+            <th className="text-left p-2">Pagar Empresário</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginateData(
+            filterTransactions(
+              transacoes.filter(transacao =>
+                transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                transacao.produto?._id.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+            ),
+            transacoesPage
+          ).map((transacao) => (
+            <tr key={transacao._id} className="border-b hover:bg-zinc-50">
+              <td className="p-2">
+                <Checkbox
+                  checked={selectedTransactions.has(transacao._id)}
+                  onCheckedChange={() => {
+                    const newSelected = new Set(selectedTransactions);
+                    if (newSelected.has(transacao._id)) {
+                      newSelected.delete(transacao._id);
+                    } else {
+                      newSelected.add(transacao._id);
+                    }
+                    setSelectedTransactions(newSelected);
+                  }}
+                  disabled={transacao.statusPagamentoAdmin === 'paga'}
+                />
+              </td>
+              <td className="p-2">{transacao.produto?.nome}</td>
+              <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
+              <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
+              <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
+              <td className="p-2">R$ {transacao.valorCashback.toFixed(2)}</td>
+              <td className="p-2">R$ {transacao.valorTotal.toFixed(2)}</td>
+              <td className="p-2">
+                {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
+              </td>
+              <td className="p-2">
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  transacao.status === 'concluida'
+                    ? 'bg-green-100 text-green-800'
+                    : transacao.status === 'pendente'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {transacao.status}
+                </span>
+              </td>
+              <td className="p-2">
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  transacao.statusPagamentoAdmin === 'paga'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {transacao.statusPagamentoAdmin}
+                </span>
+              </td>
+              <td>
+                <Button
+                  className="bg-green-500"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEmpresarioPayment(transacao)}
+                  disabled={transacao.statusPagamentoAdmin === 'paga'}
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan="2">
+              <StatCard
+                title="Total Geral"
+                value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorTotal, 0).toFixed(2)}`}
+                icon={DollarSign}
+                bgColor="bg-green-700"
+              />
+            </td>
+          </tr>
+        </tfoot>
+      </table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -952,7 +1236,7 @@ const AdminDashboard = () => {
           <TabsContent value="edicao">
             <Card>
               <CardHeader>
-                <CardTitle>Gerenciamento de Usuários</CardTitle>
+                <CardTitle>Gerenciamento de ADM</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -978,7 +1262,7 @@ const AdminDashboard = () => {
                         try {
                           const token = localStorage.getItem('token');
                           const response = await axios.post(
-                            'http://localhost:5050/users',
+                            'https://cashback-testes.onrender.com/users',
                             newUser,
                             { headers: { Authorization: `Bearer ${token}` } }
                           );
@@ -1060,7 +1344,7 @@ const AdminDashboard = () => {
                         </select>
                       </div>
                       <Button type="submit" className="w-full">
-                        Criar Usuário
+                        Criar Administrador
                       </Button>
                     </form>
                   </div>
@@ -1085,9 +1369,9 @@ const AdminDashboard = () => {
                         <p className="text-2xl font-bold text-red-600">{transacoes.length}</p>
                       </div>
                       <div>
-                        <p className="font-medium">Valor Total de Transações:</p>
+                        <p className="font-medium">Saldo do Administrador:</p>
                         <p className="text-2xl font-bold text-green-600">
-                          R$ {saldoAdmin}
+                          {saldoAdmin !== null ? `R$ ${saldoAdmin.toFixed(2)}` : 'Carregando...'}
                         </p>
                       </div>
                     </div>

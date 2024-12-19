@@ -277,8 +277,8 @@ const Dashboard = () => {
       <main className="container mx-auto py-8 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
-            title="Total de Vendas"
-            value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorCompra, 0).toFixed(2)}`}
+            title="Saldo total em vendas"
+            value={`R$ ${transacoes.reduce((acc, t) => acc + t.valorTotal, 0).toFixed(2)}`}
             icon={DollarSign}
             bgColor="bg-emerald-500"
           />

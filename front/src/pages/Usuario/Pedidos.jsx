@@ -38,7 +38,7 @@ const MeusPedidos = () => {
       setUserName(storedUser);
   
       const response = await axios.get(
-        `http://localhost:5050/transacoes/usuario/pedidos/${userId}`,
+        `https://cashback-testes.onrender.com/transacoes/usuario/pedidos/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -68,7 +68,7 @@ const MeusPedidos = () => {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('token');
 
-    const response = await axios.get(`http://localhost:5050/users/${userId}`,
+    const response = await axios.get(`https://cashback-testes.onrender.com/users/${userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

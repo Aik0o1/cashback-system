@@ -42,6 +42,7 @@ const AdminDashboard = () => {
   const [empresarioPage, setEmpresarioPage] = useState(1);
   const [transacoesPage, setTransacoesPage] = useState(1);
   const itemsPerPage = 10;
+  const [activeTransactionType, setActiveTransactionType] = useState('pending'); // 'pending' or 'paid'
 
   const [transactionFilters, setTransactionFilters] = useState({
     startDate: '',
@@ -1129,94 +1130,112 @@ const AdminDashboard = () => {
       </div>
 
       {/* Transactions Table */}
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left p-2">Selecionar</th>
-            <th className="text-left p-2">Produto</th>
-            <th className="text-left p-2">Usuário</th>
-            <th className="text-left p-2">Empresário</th>
-            <th className="text-left p-2">Valor de Compra</th>
-            <th className="text-left p-2">Cashback</th>
-            <th className="text-left p-2">Valor Total</th>
-            <th className="text-left p-2">Data</th>
-            <th className="text-left p-2">Status de venda</th>
-            <th className="text-left p-2">Status de Pagamento</th>
-            <th className="text-left p-2">Pagar Empresário</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginateData(
-            filterTransactions(
-              transacoes.filter(transacao =>
-                transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transacao.produto?._id.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-            ),
-            transacoesPage
-          ).map((transacao) => (
-            <tr key={transacao._id} className="border-b hover:bg-zinc-50">
-              <td className="p-2">
-                <Checkbox
-                  checked={selectedTransactions.has(transacao._id)}
-                  onCheckedChange={() => {
-                    const newSelected = new Set(selectedTransactions);
-                    if (newSelected.has(transacao._id)) {
-                      newSelected.delete(transacao._id);
-                    } else {
-                      newSelected.add(transacao._id);
-                    }
-                    setSelectedTransactions(newSelected);
-                  }}
-                  disabled={transacao.statusPagamentoAdmin === 'paga'}
-                />
-              </td>
-              <td className="p-2">{transacao.produto?.nome}</td>
-              <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
-              <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
-              <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
-              <td className="p-2">R$ {transacao.valorCashback.toFixed(2)}</td>
-              <td className="p-2">R$ {transacao.valorTotal.toFixed(2)}</td>
-              <td className="p-2">
-                {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
-              </td>
-              <td className="p-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  transacao.status === 'concluida'
-                    ? 'bg-green-100 text-green-800'
-                    : transacao.status === 'pendente'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {transacao.status}
-                </span>
-              </td>
-              <td className="p-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  transacao.statusPagamentoAdmin === 'paga'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {transacao.statusPagamentoAdmin}
-                </span>
-              </td>
-              <td>
-                <Button
-                  className="bg-green-500"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEmpresarioPayment(transacao)}
-                  disabled={transacao.statusPagamentoAdmin === 'paga'}
-                >
-                  <DollarSign className="h-4 w-4" />
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
+      <div className="space-y-4">
+  <div className="flex space-x-2 mb-4">
+    <Button 
+      variant={activeTransactionType === 'pending' ? 'default' : 'outline'}
+      onClick={() => setActiveTransactionType('pending')}
+    >
+      Transações Pendentes
+    </Button>
+    <Button 
+      variant={activeTransactionType === 'paid' ? 'default' : 'outline'}
+      onClick={() => setActiveTransactionType('paid')}
+    >
+      Transações Pagas
+    </Button>
+  </div>
+
+  <table className="w-full">
+    <thead>
+      <tr className="border-b">
+        {activeTransactionType === 'pending' && <th className="text-left p-2">Selecionar</th>}
+        <th className="text-left p-2">Produto</th>
+        <th className="text-left p-2">Usuário</th>
+        <th className="text-left p-2">Empresário</th>
+        <th className="text-left p-2">Valor de Compra</th>
+        <th className="text-left p-2">Cashback</th>
+        <th className="text-left p-2">Valor Total</th>
+        <th className="text-left p-2">Data</th>
+        <th className="text-left p-2">Status de venda</th>
+        <th className="text-left p-2">Status de Pagamento</th>
+        {activeTransactionType === 'pending' && <th className="text-left p-2">Pagar Empresário</th>}
+      </tr>
+    </thead>
+    <tbody>
+      {paginateData(
+        filterTransactions(
+          transacoes.filter(transacao => 
+            (activeTransactionType === 'pending' ? 
+              transacao.statusPagamentoAdmin !== 'paga' : 
+              transacao.statusPagamentoAdmin === 'paga') &&
+            (transacao._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transacao.usuario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transacao.empresario?._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transacao.produto?._id.toLowerCase().includes(searchTerm.toLowerCase()))
+          )
+        ),
+        transacoesPage
+      ).map((transacao) => (
+        <tr key={transacao._id} className="border-b hover:bg-zinc-50">
+          {activeTransactionType === 'pending' && (
+            <td className="p-2">
+              <Checkbox
+                checked={selectedTransactions.has(transacao._id)}
+                onCheckedChange={() => handleSelectTransaction(transacao._id)}
+              />
+            </td>
+          )}
+          <td className="p-2">{transacao.produto?.nome}</td>
+          <td className="p-2">{transacao.usuario?.username || 'N/A'}</td>
+          <td className="p-2">{transacao.empresario?.nome || 'N/A'}</td>
+          <td className="p-2">R$ {transacao.valorCompra.toFixed(2)}</td>
+          <td className="p-2">R$ {transacao.valorCashback.toFixed(2)}</td>
+          <td className="p-2">R$ {transacao.valorTotal.toFixed(2)}</td>
+          <td className="p-2">
+            {new Date(transacao.dataCompra).toLocaleDateString('pt-BR')}
+          </td>
+          <td className="p-2">
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              transacao.status === 'concluida'
+                ? 'bg-green-100 text-green-800'
+                : transacao.status === 'pendente'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {transacao.status}
+            </span>
+          </td>
+          <td className="p-2">
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              transacao.statusPagamentoAdmin === 'paga'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {transacao.statusPagamentoAdmin}
+            </span>
+          </td>
+          {activeTransactionType === 'pending' && (
+            <td>
+              <Button
+                className="bg-green-500"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!window.confirm(`Deseja realizar este pagamento?`)) {
+                    return;
+                  }
+                  handleEmpresarioPayment(transacao)
+                }}
+              >
+                <DollarSign className="h-4 w-4" />
+              </Button>
+            </td>
+          )}
+        </tr>
+      ))}
+    </tbody>
+    <tfoot>
           <tr>
             <td colSpan="2">
               <StatCard
@@ -1228,7 +1247,27 @@ const AdminDashboard = () => {
             </td>
           </tr>
         </tfoot>
-      </table>
+  </table>
+</div>
+      {/* <div className="flex justify-between items-center mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setTransacoesPage(prev => Math.max(1, prev - 1))}
+                        disabled={tr === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-2" /> Anterior
+                      </Button>
+                      <span>Página {tr} de {getTotalPages(transacoes)}</span>
+                      <Button
+                        variant="outline"
+                        onClick={() => setTransacoesPage(prev =>
+                          prev < getTotalPages(tr) ? prev + 1 : prev
+                        )}
+                        disabled={transacoesPage === getTotalPages(transacoes)}
+                      >
+                        Próximo <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div> */}
               </CardContent>
             </Card>
           </TabsContent>

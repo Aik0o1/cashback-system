@@ -35,7 +35,7 @@ const [usedCashback, setUsedCashback] = useState(0);
     setUserName(username);
     
     try {
-      await axios.get('http://localhost:5050/transacoes', {
+      await axios.get('https://cashback-testes.onrender.com/transacoes', {
         headers: {
           'Authorization': `Bearer ${storedToken}`
         }
@@ -57,7 +57,7 @@ const [usedCashback, setUsedCashback] = useState(0);
       setError(null);
       
       const response = await axios.get(
-        `http://localhost:5050/transacoes/usuario/${userId}`,
+        `https://cashback-testes.onrender.com/transacoes/usuario/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -101,7 +101,7 @@ console.log(cartItems)
       }
 
       await axios.delete(
-        `http://localhost:5050/transacoes/deletar/${trasacaoId}`,
+        `https://cashback-testes.onrender.com/transacoes/deletar/${trasacaoId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -145,7 +145,7 @@ console.log(cartItems)
       const total = calculateTotal();
   
       const response = await axios.post(
-        'http://localhost:5050/transacoes/bulk',
+        'https://cashback-testes.onrender.com/transacoes/bulk',
         {
           usuarioId: userId,
           cashbackValor: totalCashback, // Novo cashback ganho

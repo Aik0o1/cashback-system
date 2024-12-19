@@ -9,6 +9,8 @@ const TransacaoSchema = new mongoose.Schema({
   dataCompra: { type: Date, default: Date.now },
   valorTotal: {type: Number, required: true},
   status: { type: String, enum: ['pendente', 'concluída'], default: 'pendente' },
+  statusPagamentoAdmin: { type: String, enum: ['pendente', 'paga'], default: 'pendente' },
+
 });
 
 const Transacao = mongoose.model('Transacao', TransacaoSchema);

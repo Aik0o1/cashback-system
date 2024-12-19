@@ -31,7 +31,7 @@ const usersSchema = new mongoose.Schema({
         enum: ['admin', 'empresario', 'usuario'],  
         default: 'usuario'  
     },
-    // Renomeamos cashback para saldo para administradores
+    
     saldo: {
         type: Number,
         default: function() {

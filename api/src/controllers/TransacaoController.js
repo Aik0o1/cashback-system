@@ -339,6 +339,40 @@ class TransacaoController {
       });
     }
   }
+
+
+
+  static async atualizarStatusTransacaoPagaAdmin(req, res) {
+    try {
+      const { transacaoId } = req.params;
+      const { statusPagamentoAdmin } = req.body;
+
+      // Verifica se a transação existe e pertence ao empresário autenticado
+      const transacao = await Transacao.findOne({
+        _id: transacaoId,
+      });
+      if (!transacao) {
+        return res.status(404).json({
+          message:
+            "Transação não encontrada ou você não tem permissão para atualizá-la",
+        });
+      }
+
+      // Atualiza o status da transação
+      transacao.statusPagamentoAdmin = statusPagamentoAdmin;
+      await transacao.save();
+
+      res.status(200).json({
+        message: "Status da transação atualizado com sucesso",
+        transacao,
+      });
+    } catch (erro) {
+      res.status(500).json({
+        message: `${erro.message} - Falha ao atualizar status da transação`,
+      });
+    }
+  }
+  
 }
 
 export default TransacaoController;

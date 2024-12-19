@@ -110,7 +110,8 @@ class EmpresarioController {
         loja, 
         cnpj, 
         cashback, 
-        validadeCashback 
+        validadeCashback,
+        saldo 
       } = req.body;
       
       const empresarioId = req.params.id; // Obtém o ID do empresário da URL
@@ -129,6 +130,8 @@ class EmpresarioController {
       if (cnpj) empresario.cnpj = cnpj;
       if (cashback) empresario.cashback = cashback;
       if (validadeCashback) empresario.validadeCashback = validadeCashback;
+      if (saldo) empresario.saldo = saldo;
+
       
       // Salva as alterações no banco de dados
       await empresario.save();
@@ -141,6 +144,7 @@ class EmpresarioController {
         empresario: empresarioAtualizado,
       });
     } catch (erro) {
+      console.error('Erro ao atualizar saldo do empresário:', erro.message);
       res.status(500).json({ 
         message: `${erro.message} - falha ao atualizar dados do empresário` 
       });
